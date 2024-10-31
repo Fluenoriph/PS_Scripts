@@ -61,6 +61,12 @@ elseif ($month_value -eq 02) {
 }
 
 
+function create_month_directories ($dir_names_list) {
+    foreach ($dir_name in $dir_names_list) {New-Item -Path "$destination_path$dir_name" -Type "directory"}
+}
+
+
+
 
 
 
