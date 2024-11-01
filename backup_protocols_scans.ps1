@@ -4,20 +4,9 @@ $global:source_path = $home + '\Desktop\сканы'
 
 $global:destination_path = $home + '\Desktop\result_test\'                              
 
-$month_mask = @{
-    January = "^\d+-\w+-\d{2}\.01\.\d{4}\.pdf$"
-    February = "^\d+-\w+-\d{2}\.02\.\d{4}\.pdf$"
-    March = "^\d+-\w+-\d{2}\.03\.\d{4}\.pdf$" 
-    April = "^\d+-\w+-\d{2}\.04\.\d{4}\.pdf$"
-    May = "^\d+-\w+-\d{2}\.05\.\d{4}\.pdf$"
-    June = "^\d+-\w+-\d{2}\.06\.\d{4}\.pdf$"
-    July = "^\d+-\w+-\d{2}\.07\.\d{4}\.pdf$"
-    August = "^\d+-\w+-\d{2}\.08\.\d{4}\.pdf$"
-    September = "^\d+-\w+-\d{2}\.09\.\d{4}\.pdf$"
-    October = "^\d+-\w+-\d{2}\.10\.\d{4}\.pdf$"
-    November = "^\d+-\w+-\d{2}\.11\.\d{4}\.pdf$"
-    December = "^\d+-\w+-\d{2}\.12\.\d{4}\.pdf$"
-}
+$month_mask = ("^\d+-\w+-\d{2}\.01\.\d{4}\.pdf$", "^\d+-\w+-\d{2}\.02\.\d{4}\.pdf$", "^\d+-\w+-\d{2}\.03\.\d{4}\.pdf$", "^\d+-\w+-\d{2}\.04\.\d{4}\.pdf$", "^\d+-\w+-\d{2}\.05\.\d{4}\.pdf$",
+               "^\d+-\w+-\d{2}\.06\.\d{4}\.pdf$", "^\d+-\w+-\d{2}\.07\.\d{4}\.pdf$", "^\d+-\w+-\d{2}\.08\.\d{4}\.pdf$", "^\d+-\w+-\d{2}\.09\.\d{4}\.pdf$", "^\d+-\w+-\d{2}\.10\.\d{4}\.pdf$", 
+               "^\d+-\w+-\d{2}\.11\.\d{4}\.pdf$", "^\d+-\w+-\d{2}\.12\.\d{4}\.pdf$")
 
 $eias_month_mask = ("^\d{5}-\d{2}-\d{2}-\d{2}\.01\.\d{4}\.pdf$", "^\d{5}-\d{2}-\d{2}-\d{2}\.02\.\d{4}\.pdf$", "^\d{5}-\d{2}-\d{2}-\d{2}\.03\.\d{4}\.pdf$", 
                     "^\d{5}-\d{2}-\d{2}-\d{2}\.04\.\d{4}\.pdf$", "^\d{5}-\d{2}-\d{2}-\d{2}\.05\.\d{4}\.pdf$", "^\d{5}-\d{2}-\d{2}-\d{2}\.06\.\d{4}\.pdf$", 
@@ -59,14 +48,66 @@ elseif ($month_value -eq 02) {
 
     backuping_files $month_mask.February $eias_month_mask[1] $monthes_folders_names[1]
 }
+elseif ($month_value -eq 03) {
+    $log_file = $log_files_names[2]
 
+    backuping_files $month_mask.March $eias_month_mask[2] $monthes_folders_names[2]
+}
+elseif ($month_value -eq 04) {
+    $log_file = $log_files_names[3]
 
-function create_month_directories ($dir_names_list) {
-    foreach ($dir_name in $dir_names_list) {New-Item -Path "$destination_path$dir_name" -Type "directory"}
+    backuping_files $month_mask.April $eias_month_mask[3] $monthes_folders_names[3]
+}
+elseif ($month_value -eq 05) {
+    $log_file = $log_files_names[4]
+
+    backuping_files $month_mask.May $eias_month_mask[4] $monthes_folders_names[4]
+}
+elseif ($month_value -eq 06) {
+    $log_file = $log_files_names[5]
+
+    backuping_files $month_mask.June $eias_month_mask[5] $monthes_folders_names[5]
+}
+elseif ($month_value -eq 07) {
+    $log_file = $log_files_names[6]
+
+    backuping_files $month_mask.July $eias_month_mask[6] $monthes_folders_names[6]
+}
+elseif ($month_value -eq 08) {
+    $log_file = $log_files_names[7]
+
+    backuping_files $month_mask.August $eias_month_mask[7] $monthes_folders_names[7]
+}
+elseif ($month_value -eq 09) {
+    $log_file = $log_files_names[8]
+
+    backuping_files $month_mask.September $eias_month_mask[8] $monthes_folders_names[8]
+}
+elseif ($month_value -eq 10) {
+    $log_file = $log_files_names[9]
+
+    backuping_files $month_mask.October $eias_month_mask[9] $monthes_folders_names[9]
+}
+elseif ($month_value -eq 11) {
+    $log_file = $log_files_names[10]
+
+    backuping_files $month_mask.November $eias_month_mask[10] $monthes_folders_names[10]
+}
+elseif ($month_value -eq 12) {
+    $log_file = $log_files_names[11]
+
+    backuping_files $month_mask.December $eias_month_mask[11] $monthes_folders_names[11]
 }
 
 
+function backuping_per_year ($file_mask, $eias_file_mask, $folder_name) {
+    $i = 0
+    
+    while ($i -le 11) {
+        $log_file = $log_files_names[$i]
 
+        backuping_files $file_mask[$i] $eias_file_mask[$i] $folder_name[$i]
 
-
-
+        $i++
+    }
+}
