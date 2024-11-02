@@ -27,9 +27,9 @@ $script_info = @"
 $out_print = Write-Verbose -Message $script_info -Verbose
 $out_print
 
-$source_path = $home + '\Desktop\сканы' 
+$source_path = $home + '\Desktop\сканы'               # Изменить !
 
-$destination_path = $home + '\Desktop\result_test\'                              
+$destination_path = $home + '\Desktop\result_test\'   # Изменить !                 
 
 $monthes_folders_names = ('Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь') 
 
