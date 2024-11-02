@@ -17,7 +17,7 @@ $script_info = @"
 
         >>> Резервное копирование сканов протоколов <<<
 
-Подробная информация: Get-Help .\backup_protocols_scans.ps1
+Подробная информация: 'Get-Help .\backup_protocols_scans.ps1'
 
 >> Копирование за месяц > 'backuping_to_month <значение месяца>'
 >> Копирование за год > 'backuping_to_year'
