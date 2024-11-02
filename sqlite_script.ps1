@@ -1,6 +1,5 @@
 chcp 65001
 
-
 function create_the_database ($name) {
     Set-Location C:\
     .\sqlite3 $name

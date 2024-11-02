@@ -1,6 +1,30 @@
-$script_name = "Резервное копирование сканов протоколов`n 1. Создать директории"
+<#
+.SYNOPSIS
+    Сценарий backup_protocols_scans.ps1
+.DESCRIPTION
+    backuping_to_month <value>     Копировать за месяц. Параметры: [01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12]  
+    backuping_to_year              Копировать за год
+    create_month_directories <>    Создать папки по месяцам. Параметры: [путь(необязательный)]
+    find_scan_at_number <mask>     Поиск файлов по маске. Параметры: [маска поиска, путь(необязательный)]
+.EXAMPLE
+    backuping_to_month 02
+    backuping_to_year
+    create_month_directories      (create_month_directories C:\Directory)
+    find_scan_at_number 123-a*    (find_scan_at_number 123-a* C:\Directory)       
+ #>
 
-$out_print = Write-Verbose -Message $script_name -Verbose
+$script_info = @"
+
+    *** Резервное копирование сканов протоколов ***
+
+Подробная информация: Get-Help .\backup_protocols_scans.ps1
+
+>> Копирование за месяц > 'backuping_to_month значение месяца'
+>> Копирование за год > 'backuping_to_year '
+
+"@
+
+$out_print = Write-Verbose -Message $script_info -Verbose
 $out_print
 
 $source_path = $home + '\Desktop\сканы' 
@@ -31,15 +55,15 @@ function backuping_files ($month_mask, $eias_month_mask, $monthes_folders_names)
 
 
 function logging_backup ($month_mask, $eias_month_mask, $log_files_names) {
-    $simple_files_count = 0; $eias_files_count = 0
+    $count = 0
 
     Get-ChildItem -Path $source_path | Where-Object Name -Match $month_mask | ForEach-Object Name | Out-File -FilePath $log_files_names
-    Get-ChildItem -Path $source_path | Where-Object Name -Match $month_mask | ForEach-Object {$simple_files_count += 1}
+    Get-ChildItem -Path $source_path | Where-Object Name -Match $month_mask | ForEach-Object {$count += 1}
 
     Get-ChildItem -Path $source_path | Where-Object Name -Match $eias_month_mask | ForEach-Object Name | Out-File -FilePath $log_files_names -Append
-    Get-ChildItem -Path $source_path | Where-Object Name -Match $eias_month_mask | ForEach-Object {$eias_files_count += 1}
+    Get-ChildItem -Path $source_path | Where-Object Name -Match $eias_month_mask | ForEach-Object {$count += 1}
 
-    "`n Количество скопированных файлов: " + ($simple_files_count + $eias_files_count) | Out-File -FilePath $log_files_names -Append
+    "`n Количество скопированных файлов: " + $count | Out-File -FilePath $log_files_names -Append
 }
 
 
