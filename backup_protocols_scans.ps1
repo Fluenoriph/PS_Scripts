@@ -150,19 +150,10 @@ function create_month_directories ($path = $destination_path) {
 
 
 function find_scan_at_number ($name_mask, $path_to_find = $destination_path) {
-    Get-ChildItem -Name -Filter $name_mask* -Path $path_to_find -File
+    Get-ChildItem -Filter $name_mask* -Path $path_to_find -File
 }
-
-
-
-
-
-
-<#
-# Поток выходит в домашнюю директорию !!
-$global:found_files_list = find_scan_at_number
 
 
 function copy_found_files ($path_to_copy) {
     foreach ($file in $found_files_list) {Copy-Item $file -Destination $path_to_copy}
-}#>
+}
