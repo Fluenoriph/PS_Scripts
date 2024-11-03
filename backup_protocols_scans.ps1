@@ -4,7 +4,7 @@
 .DESCRIPTION
     backuping_to_month <value>     Копировать за месяц. Параметры: [01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12]  
     backuping_to_year              Копировать за год
-    create_month_directories <>    Создать папки по месяцам. Параметры: [путь(необязательный)]
+    create_month_directories <.>    Создать папки по месяцам. Параметры: [путь(необязательный)]
     find_scan_at_number <mask>     Поиск файлов по маске. Параметры: [маска поиска, путь(необязательный)]
 .EXAMPLE
     backuping_to_month 02
@@ -13,23 +13,26 @@
     find_scan_at_number 123-a*    (find_scan_at_number 123-a* C:\Directory)       
  #>
 
+$source_path = $home + '\Desktop\сканы'               # Изменить !
+
+$destination_path = $home + '\Desktop\result_test\'   # Изменить !         
+
 $script_info = @"
 
-        >>> Резервное копирование сканов протоколов <<<
-
-Подробная информация: 'Get-Help .\backup_protocols_scans.ps1'
+         >>> Резервное копирование сканов протоколов <<< 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Подробная справка: 'Get-Help .\backup_protocols_scans.ps1'
 
 >> Копирование за месяц > 'backuping_to_month <значение месяца>'
 >> Копирование за год > 'backuping_to_year'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Исходная директория: $source_path
+Директория резервного копирования: $destination_path
 
 "@
-
+      
 $out_print = Write-Verbose -Message $script_info -Verbose
 $out_print
-
-$source_path = $home + '\Desktop\сканы'               # Изменить !
-
-$destination_path = $home + '\Desktop\result_test\'   # Изменить !                 
 
 $monthes_folders_names = ('Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь') 
 
