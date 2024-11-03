@@ -66,7 +66,12 @@ function logging_backup ($month_mask, $eias_month_mask, $log_files_names) {
     Get-ChildItem -Path $source_path | Where-Object Name -Match $eias_month_mask | ForEach-Object Name | Out-File -FilePath $log_files_names -Append
     Get-ChildItem -Path $source_path | Where-Object Name -Match $eias_month_mask | ForEach-Object {$count += 1}
 
-    "`n Количество скопированных файлов: " + $count | Out-File -FilePath $log_files_names -Append
+    $log_result = "`n Количество скопированных файлов: " + $count
+    $log_result_out = 'Успешно !' + $log_result + "`n" 
+
+    $log_result | Out-File -FilePath $log_files_names -Append
+
+    Write-Verbose -Message $log_result_out -Verbose
 }
 
 
