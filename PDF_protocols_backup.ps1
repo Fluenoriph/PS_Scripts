@@ -41,26 +41,34 @@ Set-Alias -name year -value backuping_to_year
 Set-Alias -name help -value get_script_info
 
 
-function backuping ($mask, $folders_names) {                       
-    Get-ChildItem -Path $source_path | Where-Object Name -Match $mask | Copy-Item -Destination $destination_path$folders_names                       
+function backuping ($mask, $folder) {
+    Get-ChildItem -Path $source_path | Where-Object Name -Match $mask | Copy-Item -Destination $destination_path$folder
+    
+    
+    
+    <#if ($? -eq 'True') {
+        
+        Write-Output 'Ok'
+    }
+    else {
+        Write-Output 'Файлы не скопированы ! Возникла ошибка.'    
+    }#>                       
 }
 
 
-function logging ($month_mask, $eias_month_mask, $log_files_names) {
-    $count = 0
+function logging ($mask, $log_file) {
+    #$count = 0
 
-    Get-ChildItem -Path $source_path | Where-Object Name -Match $month_mask | ForEach-Object Name | Out-File -FilePath $log_files_names
-    Get-ChildItem -Path $source_path | Where-Object Name -Match $month_mask | ForEach-Object {$count += 1}
+    Get-ChildItem -Path $source_path | Where-Object Name -Match $mask | ForEach-Object Name | Out-File -FilePath $log_file -Append
+    #Get-ChildItem -Path $source_path | Where-Object Name -Match $month_mask | ForEach-Object {$count += 1}
 
-    Get-ChildItem -Path $source_path | Where-Object Name -Match $eias_month_mask | ForEach-Object Name | Out-File -FilePath $log_files_names -Append
-    Get-ChildItem -Path $source_path | Where-Object Name -Match $eias_month_mask | ForEach-Object {$count += 1}
-
-    $log_result = "`n Количество скопированных файлов: " + $count
-    $print_log_result = 'Успешно !' + $log_result + "`n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" 
+    
+    #$log_result = "`n Количество скопированных файлов: " + $count
+    #$print_log_result = 'Успешно !' + $log_result + "`n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" 
      # Проверка на ошибки
-    $log_result | Out-File -FilePath $log_files_names -Append
+    #$log_result | Out-File -FilePath $log_files_names -Append
 
-    Write-Verbose -Message $print_log_result -Verbose
+    #Write-Verbose -Message $print_log_result -Verbose
 }
 
 
@@ -88,12 +96,17 @@ function backuping_to_year {
 
 function backuping_to_month ($month_value) {
     if ($month_value -eq 01) {    
-        backuping $month_mask[0] $eias_month_mask[0] $monthes_folders_names[0]
+        backuping $file_mask[0] $folders_names[0]
+        
+        backuping $eias_file_mask[0] $folders_names[0]
+        
+        
+
+        #logging $file_mask[0] $log_files_names[0]
+        #logging $eias_file_mask[0] $log_files_names[0]
 
 
-
-
-        logging $month_mask[0] $eias_month_mask[0] $log_files_names[0]
+        #logging $month_mask[0] $eias_month_mask[0] $log_files_names[0]
     }
     elseif ($month_value -eq 02) {    
         backuping $month_mask[1] $eias_month_mask[1] $monthes_folders_names[1]
