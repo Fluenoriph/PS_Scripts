@@ -249,10 +249,10 @@ function get_script_info {
     Get-Help .\PDF_protocols_backup.ps1
 }
 
-
+# Обновить инфо !
 <#
 .SYNOPSIS
-    Сценарий backup_protocols_scans.ps1
+    Сценарий PDF_protocols_backuo.ps1
 .DESCRIPTION
     backuping_to_month <value>     Копировать за месяц. Параметры: [01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12]  
     backuping_to_year              Копировать за год
