@@ -21,16 +21,22 @@ $eias_file_mask = ("^\d{5}-\d{2}-\d{2}-\d{2}\.01\.\d{4}\.pdf$", "^\d{5}-\d{2}-\d
                     "^\d{5}-\d{2}-\d{2}-\d{2}\.07\.\d{4}\.pdf$", "^\d{5}-\d{2}-\d{2}-\d{2}\.08\.\d{4}\.pdf$", "^\d{5}-\d{2}-\d{2}-\d{2}\.09\.\d{4}\.pdf$", 
                     "^\d{5}-\d{2}-\d{2}-\d{2}\.10\.\d{4}\.pdf$", "^\d{5}-\d{2}-\d{2}-\d{2}\.11\.\d{4}\.pdf$", "^\d{5}-\d{2}-\d{2}-\d{2}\.12\.\d{4}\.pdf$")
 
+$global:count = 0; $global:year_sum = 0
+
+$separatop = '- - - - - - - - - - - - - - - - - - - - - - - - - - - -'
+$print_separator = Write-Output $separatop
+
 
 Write-Output @"
-- - - - - - - - - - - - - - - - - - - - - - - - - - - -  
-    >>> Резервное копирование сканов протоколов <<< 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - -          
->> Копирование за месяц > month <значение месяца> (01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12)
->> Копирование за год > year
+$print_separator  
+    >> Резервное копирование сканов протоколов << 
+$print_separator         
+| Копирование за месяц > month <значение месяца> (01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12)
+| Копирование за год > year
 
 Подробная справка: help
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > 
 Исходная директория: $source_path
 Директория резервного копирования: $destination_path
            
@@ -42,33 +48,161 @@ Set-Alias -name help -value get_script_info
 
 
 function backuping ($mask, $folder) {
-    Get-ChildItem -Path $source_path | Where-Object Name -Match $mask | Copy-Item -Destination $destination_path$folder
-    
-    
-    
-    <#if ($? -eq 'True') {
-        
-        Write-Output 'Ok'
+    $get_files_operation = Get-ChildItem -Path $source_path | Where-Object Name -Match $mask
+
+    $get_files_operation | Copy-Item -Destination $destination_path$folder
+            
+    if ($? -eq 'True') {
+        $get_files_operation | ForEach-Object {$global:count += 1}
     }
     else {
         Write-Output 'Файлы не скопированы ! Возникла ошибка.'    
-    }#>                       
+    }        
 }
 
 
-function logging ($mask, $log_file) {
-    #$count = 0
-
+function logging_files_names ($mask, $log_file) {
     Get-ChildItem -Path $source_path | Where-Object Name -Match $mask | ForEach-Object Name | Out-File -FilePath $log_file -Append
-    #Get-ChildItem -Path $source_path | Where-Object Name -Match $month_mask | ForEach-Object {$count += 1}
+}
 
+
+function logging_result_sum ($log_file) {
+    $log = "`n" + "Количество скопированных файлов: " + $global:count
+    $log | Out-File -FilePath $log_file -Append
+}
+
+
+function print_result_sum ($month_name) {
+    $message = "Успешно! Скопировано файлов: " + $global:count
+    Write-Output $month_name
+    Write-Output $message
+    $print_separator
     
-    #$log_result = "`n Количество скопированных файлов: " + $count
-    #$print_log_result = 'Успешно !' + $log_result + "`n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" 
-     # Проверка на ошибки
-    #$log_result | Out-File -FilePath $log_files_names -Append
+    $global:count = 0
+}
 
-    #Write-Verbose -Message $print_log_result -Verbose
+
+function backuping_to_month ($month_value) {
+    if ($month_value -eq 01) {
+        backuping $file_mask[0] $folders_names[0]
+        backuping $eias_file_mask[0] $folders_names[0]
+        
+        logging_files_names $file_mask[0] $log_files_names[0]
+        logging_files_names $eias_file_mask[0] $log_files_names[0]
+        logging_result_sum $log_files_names[0]
+
+        print_result_sum $folders_names[0]
+    }
+    elseif ($month_value -eq 02) {    
+        backuping $file_mask[1] $folders_names[1]
+        backuping $eias_file_mask[1] $folders_names[1]
+        
+        logging_files_names $file_mask[1] $log_files_names[1]
+        logging_files_names $eias_file_mask[1] $log_files_names[1]
+        logging_result_sum $log_files_names[1]
+
+        print_result_sum $folders_names[1]
+    }
+    elseif ($month_value -eq 03) {   
+        backuping $file_mask[2] $folders_names[2]
+        backuping $eias_file_mask[2] $folders_names[2]
+        
+        logging_files_names $file_mask[2] $log_files_names[2]
+        logging_files_names $eias_file_mask[2] $log_files_names[2]
+        logging_result_sum $log_files_names[2]
+
+        print_result_sum $folders_names[2]
+    }
+    elseif ($month_value -eq 04) {    
+        backuping $file_mask[3] $folders_names[3]
+        backuping $eias_file_mask[3] $folders_names[3]
+        
+        logging_files_names $file_mask[3] $log_files_names[3]
+        logging_files_names $eias_file_mask[3] $log_files_names[3]
+        logging_result_sum $log_files_names[3]
+
+        print_result_sum $folders_names[3]
+    }
+    elseif ($month_value -eq 05) {    
+        backuping $file_mask[4] $folders_names[4]
+        backuping $eias_file_mask[4] $folders_names[4]
+        
+        logging_files_names $file_mask[4] $log_files_names[4]
+        logging_files_names $eias_file_mask[4] $log_files_names[4]
+        logging_result_sum $log_files_names[4]
+
+        print_result_sum $folders_names[4]
+    }
+    elseif ($month_value -eq 06) {    
+        backuping $file_mask[5] $folders_names[5]
+        backuping $eias_file_mask[5] $folders_names[5]
+        
+        logging_files_names $file_mask[5] $log_files_names[5]
+        logging_files_names $eias_file_mask[5] $log_files_names[5]
+        logging_result_sum $log_files_names[5]
+
+        print_result_sum $folders_names[5]
+    }
+    elseif ($month_value -eq 07) {    
+        backuping $file_mask[6] $folders_names[6]
+        backuping $eias_file_mask[6] $folders_names[6]
+        
+        logging_files_names $file_mask[6] $log_files_names[6]
+        logging_files_names $eias_file_mask[6] $log_files_names[6]
+        logging_result_sum $log_files_names[6]
+
+        print_result_sum $folders_names[6]
+    }
+    elseif ($month_value -eq 08) {    
+        backuping $file_mask[7] $folders_names[7]
+        backuping $eias_file_mask[7] $folders_names[7]
+        
+        logging_files_names $file_mask[7] $log_files_names[7]
+        logging_files_names $eias_file_mask[7] $log_files_names[7]
+        logging_result_sum $log_files_names[7]
+
+        print_result_sum $folders_names[7]
+    }
+    elseif ($month_value -eq 09) {    
+        backuping $file_mask[8] $folders_names[8]
+        backuping $eias_file_mask[8] $folders_names[8]
+        
+        logging_files_names $file_mask[8] $log_files_names[8]
+        logging_files_names $eias_file_mask[8] $log_files_names[8]
+        logging_result_sum $log_files_names[8]
+
+        print_result_sum $folders_names[8]
+    }
+    elseif ($month_value -eq 10) {    
+        backuping $file_mask[9] $folders_names[9]
+        backuping $eias_file_mask[9] $folders_names[9]
+        
+        logging_files_names $file_mask[9] $log_files_names[9]
+        logging_files_names $eias_file_mask[9] $log_files_names[9]
+        logging_result_sum $log_files_names[9]
+
+        print_result_sum$folders_names[9]
+    }
+    elseif ($month_value -eq 11) {    
+        backuping $file_mask[10] $folders_names[10]
+        backuping $eias_file_mask[10] $folders_names[10]
+        
+        logging_files_names $file_mask[10] $log_files_names[10]
+        logging_files_names $eias_file_mask[10] $log_files_names[10]
+        logging_result_sum $log_files_names[10]
+
+        print_result_sum $folders_names[10]
+    }
+    elseif ($month_value -eq 12) {    
+        backuping $file_mask[11] $folders_names[11]
+        backuping $eias_file_mask[11] $folders_names[11]
+        
+        logging_files_names $file_mask[11] $log_files_names[11]
+        logging_files_names $eias_file_mask[11] $log_files_names[11]
+        logging_result_sum $log_files_names[11]
+
+        print_result_sum $folders_names[11]
+    }
 }
 
 
@@ -77,92 +211,22 @@ function backuping_to_year {
     
     while ($i -le 11) {
         backuping $file_mask[$i] $folders_names[$i]
-
         backuping $eias_file_mask[$i] $folders_names[$i]
-                
-        $print_current_month = $monthes_folders_names[$i]     #!!!!!!!
-        Write-Verbose -Message $print_current_month -Verbose
-
-        logging $month_mask[$i] $eias_month_mask[$i] $log_files_names[$i]
         
-        $number_of_files_per_year += $count
-                
+        $global:year_sum += $global:count
+
+        logging_files_names $file_mask[$i] $log_files_names[$i]
+        logging_files_names $eias_file_mask[$i] $log_files_names[$i]
+        logging_result_sum $log_files_names[$i]
+
+        print_result_sum $folders_names[$i]
+                       
         $i++
     }
-    $print_count_of_year = "Количество за год: " + $number_of_files_per_year
-    Write-Verbose -Message $print_count_of_year -Verbose
-}
+    $out = "Скопировано файлов за год: " + $global:year_sum + "`n"
+    Write-Output $out
 
-
-function backuping_to_month ($month_value) {
-    if ($month_value -eq 01) {    
-        backuping $file_mask[0] $folders_names[0]
-        
-        backuping $eias_file_mask[0] $folders_names[0]
-        
-        
-
-        #logging $file_mask[0] $log_files_names[0]
-        #logging $eias_file_mask[0] $log_files_names[0]
-
-
-        #logging $month_mask[0] $eias_month_mask[0] $log_files_names[0]
-    }
-    elseif ($month_value -eq 02) {    
-        backuping $month_mask[1] $eias_month_mask[1] $monthes_folders_names[1]
-
-        logging $month_mask[1] $eias_month_mask[1] $log_files_names[1]
-    }
-    elseif ($month_value -eq 03) {   
-        backuping $month_mask[2] $eias_month_mask[2] $monthes_folders_names[2]
-
-        logging $month_mask[2] $eias_month_mask[2] $log_files_names[2]
-    }
-    elseif ($month_value -eq 04) {    
-        backuping $month_mask[3] $eias_month_mask[3] $monthes_folders_names[3]
-
-        logging $month_mask[3] $eias_month_mask[3] $log_files_names[3]
-    }
-    elseif ($month_value -eq 05) {    
-        backuping $month_mask[4] $eias_month_mask[4] $monthes_folders_names[4]
-
-        logging $month_mask[4] $eias_month_mask[4] $log_files_names[4]
-    }
-    elseif ($month_value -eq 06) {    
-        backuping $month_mask[5] $eias_month_mask[5] $monthes_folders_names[5]
-
-        logging $month_mask[5] $eias_month_mask[5] $log_files_names[5]
-    }
-    elseif ($month_value -eq 07) {    
-        backuping $month_mask[6] $eias_month_mask[6] $monthes_folders_names[6]
-
-        logging $month_mask[6] $eias_month_mask[6] $log_files_names[6]
-    }
-    elseif ($month_value -eq 08) {    
-        backuping $month_mask[7] $eias_month_mask[7] $monthes_folders_names[7]
-
-        logging $month_mask[7] $eias_month_mask[7] $log_files_names[7]
-    }
-    elseif ($month_value -eq 09) {    
-        backuping $month_mask[8] $eias_month_mask[8] $monthes_folders_names[8]
-
-        logging $month_mask[8] $eias_month_mask[8] $log_files_names[8]
-    }
-    elseif ($month_value -eq 10) {    
-        backuping $month_mask[9] $eias_month_mask[9] $monthes_folders_names[9]
-
-        logging $month_mask[9] $eias_month_mask[9] $log_files_names[9]
-    }
-    elseif ($month_value -eq 11) {    
-        backuping $month_mask[10] $eias_month_mask[10] $monthes_folders_names[10]
-
-        logging $month_mask[10] $eias_month_mask[10] $log_files_names[10]
-    }
-    elseif ($month_value -eq 12) {    
-        backuping $month_mask[11] $eias_month_mask[11] $monthes_folders_names[11]
-
-        logging $month_mask[11] $eias_month_mask[11] $log_files_names[11]
-    }
+    $global:year_sum = 0
 }
 
 
