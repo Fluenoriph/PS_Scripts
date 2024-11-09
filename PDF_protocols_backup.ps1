@@ -31,18 +31,23 @@ $global:count = 0; $global:year_sum = 0
 $separatop = '- - - - - - - - - - - - - - - - - - - - - - - - - - - -'
 $print_separator = Write-Output $separatop
 
+$flow_separator = '> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >'
+$print_flow_separator = Write-Output $flow_separator
 
-Write-Output @"
+$error_message = "Файлы не скопированы ! Возникла ошибка."
+
+
+Write-Host @"
 $print_separator  
     >> Резервное копирование сканов протоколов << 
 $print_separator         
 | Копирование за месяц > 'month <значение месяца>' (01; 02; 03; 04; 05; 06; 07; 08; 09; 10; 11; 12)
 | Копирование за год > 'year'
 | Создание папок по месяцам > 'cmds' ([директория по умолчанию])
-| Поиск протокола по номеру > 'find <номер>' (123-A; 12345-01-02)
-| 
-Подробная справка: 'help'
-> > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > 
+| Поиск протокола по номеру > 'find <номер>' (123-A; 12345-01-02) 
+
+  Подробная справка: 'help'
+$print_flow_separator 
 Исходная директория: $source_path
 Директория резервного копирования: $destination_path
            
@@ -64,7 +69,7 @@ function backuping ($mask, $folder) {
         $get_files_operation | ForEach-Object {$global:count += 1}
     }
     else {
-        Write-Output 'Файлы не скопированы ! Возникла ошибка.'    
+        Write-Host $error_message    
     }        
 }
 
@@ -82,8 +87,8 @@ function logging_result_sum ($log_file) {
 
 function print_result_sum ($month_name) {
     $message = "Успешно! Скопировано файлов: " + $global:count
-    Write-Output $month_name
-    Write-Output $message
+    Write-Host $month_name
+    Write-Host $message
     $print_separator
     
     $global:count = 0
@@ -232,7 +237,7 @@ function backuping_to_year {
         $i++
     }
     $out = "Скопировано файлов за год: " + $global:year_sum + "`n"
-    Write-Output $out
+    Write-Host $out
 
     $global:year_sum = 0
 }
@@ -244,12 +249,25 @@ function create_month_folders ($path = $destination_path) {
 
 
 function find_protocol_at_number ($mask, $path = $destination_path) {
-    Get-ChildItem -Filter $mask* -Path $path -File
-}
+    $find_operation = Get-ChildItem -Filter $mask* -Path $path -File
+    $find_operation
 
-
-function copy_found_files ($path) {
-    foreach ($file in $file_list) {Copy-Item $file -Destination $path}   # Сделать в функции поиска по запросу !
+    $print_flow_separator
+    Write-Host "Копировать на рабочий стол ?"
+    $selector = Read-Host "Нажмите 'Y' (да) или 'N' (нет)"
+    
+    if ($selector -ieq 'Y') {
+        $find_operation | Copy-Item -Destination {$home + '\Desktop'}
+        
+        if ($? -eq 'True') {
+            Write-Host ''
+            Write-Host "Успешно!"
+        }
+        else {
+            Write-Host $error_message    
+        }       
+    }
+    else {break}
 }
 
 
