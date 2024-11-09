@@ -31,11 +31,12 @@ Write-Output @"
 $print_separator  
     >> Резервное копирование сканов протоколов << 
 $print_separator         
-| Копирование за месяц > month <значение месяца> (01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12)
-| Копирование за год > year
-
-Подробная справка: help
-
+| Копирование за месяц > 'month <значение месяца>' (01; 02; 03; 04; 05; 06; 07; 08; 09; 10; 11; 12)
+| Копирование за год > 'year'
+| Создание папок по месяцам > 'cmds' ([директория по умолчанию])
+| Поиск протокола по номеру > 'find <номер>' (123-A; 12345-01-02)
+| 
+Подробная справка: 'help'
 > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > 
 Исходная директория: $source_path
 Директория резервного копирования: $destination_path
@@ -45,6 +46,8 @@ $print_separator
 Set-Alias -name month -value backuping_to_month
 Set-Alias -name year -value backuping_to_year
 Set-Alias -name help -value get_script_info
+Set-Alias -name cmds -value create_month_folders
+Set-Alias -name find -value find_protocol_at_number
 
 
 function backuping ($mask, $folder) {
@@ -82,8 +85,8 @@ function print_result_sum ($month_name) {
 }
 
 
-function backuping_to_month ($month_value) {
-    if ($month_value -eq 01) {
+function backuping_to_month ($value) {
+    if ($value -eq 01) {
         backuping $file_mask[0] $folders_names[0]
         backuping $eias_file_mask[0] $folders_names[0]
         
@@ -93,7 +96,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[0]
     }
-    elseif ($month_value -eq 02) {    
+    elseif ($value -eq 02) {    
         backuping $file_mask[1] $folders_names[1]
         backuping $eias_file_mask[1] $folders_names[1]
         
@@ -103,7 +106,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[1]
     }
-    elseif ($month_value -eq 03) {   
+    elseif ($value -eq 03) {   
         backuping $file_mask[2] $folders_names[2]
         backuping $eias_file_mask[2] $folders_names[2]
         
@@ -113,7 +116,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[2]
     }
-    elseif ($month_value -eq 04) {    
+    elseif ($value -eq 04) {    
         backuping $file_mask[3] $folders_names[3]
         backuping $eias_file_mask[3] $folders_names[3]
         
@@ -123,7 +126,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[3]
     }
-    elseif ($month_value -eq 05) {    
+    elseif ($value -eq 05) {    
         backuping $file_mask[4] $folders_names[4]
         backuping $eias_file_mask[4] $folders_names[4]
         
@@ -133,7 +136,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[4]
     }
-    elseif ($month_value -eq 06) {    
+    elseif ($value -eq 06) {    
         backuping $file_mask[5] $folders_names[5]
         backuping $eias_file_mask[5] $folders_names[5]
         
@@ -143,7 +146,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[5]
     }
-    elseif ($month_value -eq 07) {    
+    elseif ($value -eq 07) {    
         backuping $file_mask[6] $folders_names[6]
         backuping $eias_file_mask[6] $folders_names[6]
         
@@ -153,7 +156,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[6]
     }
-    elseif ($month_value -eq 08) {    
+    elseif ($value -eq 08) {    
         backuping $file_mask[7] $folders_names[7]
         backuping $eias_file_mask[7] $folders_names[7]
         
@@ -163,7 +166,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[7]
     }
-    elseif ($month_value -eq 09) {    
+    elseif ($value -eq 09) {    
         backuping $file_mask[8] $folders_names[8]
         backuping $eias_file_mask[8] $folders_names[8]
         
@@ -173,7 +176,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[8]
     }
-    elseif ($month_value -eq 10) {    
+    elseif ($value -eq 10) {    
         backuping $file_mask[9] $folders_names[9]
         backuping $eias_file_mask[9] $folders_names[9]
         
@@ -183,7 +186,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum$folders_names[9]
     }
-    elseif ($month_value -eq 11) {    
+    elseif ($value -eq 11) {    
         backuping $file_mask[10] $folders_names[10]
         backuping $eias_file_mask[10] $folders_names[10]
         
@@ -193,7 +196,7 @@ function backuping_to_month ($month_value) {
 
         print_result_sum $folders_names[10]
     }
-    elseif ($month_value -eq 12) {    
+    elseif ($value -eq 12) {    
         backuping $file_mask[11] $folders_names[11]
         backuping $eias_file_mask[11] $folders_names[11]
         
@@ -230,18 +233,18 @@ function backuping_to_year {
 }
 
 
-function create_month_directories ($path = $destination_path) {
-    foreach ($dir_name in $monthes_folders_names) {New-Item -Path "$path$dir_name" -Type "directory"}
+function create_month_folders ($path = $destination_path) {
+    foreach ($folder in $folders_names) {New-Item -Path "$path$folder" -Type "directory"}
 }
 
 
-function find_scan_at_number ($name_mask, $path_to_find = $destination_path) {
-    Get-ChildItem -Filter $name_mask* -Path $path_to_find -File
+function find_protocol_at_number ($mask, $path = $destination_path) {
+    Get-ChildItem -Filter $mask* -Path $path -File
 }
 
 
-function copy_found_files ($path_to_copy) {
-    foreach ($file in $found_files_list) {Copy-Item $file -Destination $path_to_copy}
+function copy_found_files ($path) {
+    foreach ($file in $file_list) {Copy-Item $file -Destination $path}   # Сделать в функции поиска по запросу !
 }
 
 
