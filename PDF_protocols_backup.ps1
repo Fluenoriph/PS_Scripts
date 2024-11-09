@@ -1,10 +1,15 @@
-# Nebula Backup PDF
-# (c) Ivan Bogdanov
+# **************************************
+
+# Nebula Script. Backup PDF Mod
+# (c) Ivan Bogdanov. 2025
+# Powered by Open Source 
+
+# **************************************
 
 
-$source_path = $home + '\Desktop\сканы'               # Изменить !
+$source_path = $home + '\Desktop\сканы'               
 
-$destination_path = $home + '\Desktop\result_test\'   # Изменить !         
+$destination_path = $home + '\Desktop\result_test\'    
      
 $folders_names = ('Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь') 
 
