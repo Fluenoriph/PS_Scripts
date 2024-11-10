@@ -43,8 +43,8 @@ $print_separator
 $print_separator         
 | Копирование за месяц > 'month <значение месяца>' (01; 02; 03; 04; 05; 06; 07; 08; 09; 10; 11; 12)
 | Копирование за год > 'year'
-| Создание папок по месяцам > 'cmds' ([директория по умолчанию])
-| Поиск протокола по номеру > 'find <номер>' (123-A; 12345-01-02) 
+| Поиск протокола по номеру > 'find <номер>' (123-A; 12345-01-02)
+| Создание папок по месяцам > 'cmds' ([директория по умолчанию]) 
 
   Подробная справка: 'help'
 $print_flow_separator 
@@ -275,18 +275,26 @@ function get_script_info {
     Get-Help .\PDF_protocols_backup.ps1
 }
 
-# Обновить инфо !
+
 <#
 .SYNOPSIS
-    Сценарий PDF_protocols_backuo.ps1
+    Сценарий PDF_protocols_backup.ps1
 .DESCRIPTION
-    backuping_to_month <value>     Копировать за месяц. Параметры: [01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12]  
-    backuping_to_year              Копировать за год
-    create_month_directories <.>    Создать папки по месяцам. Параметры: [путь(необязательный)]
-    find_scan_at_number <mask>     Поиск файлов по маске. Параметры: [маска поиска, путь(необязательный)]
+    backuping_to_month <value>         Копировать за месяц. Параметры: [01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12]  
+    backuping_to_year                  Копировать за год
+    find_protocol_at_number <mask>     Поиск файлов по маске. Параметры: [маска поиска, путь(необязательный)]
+    create_month_folders <.>           Создать папки по месяцам. Параметры: [путь(необязательный)]
 .EXAMPLE
     backuping_to_month 02
     backuping_to_year
-    create_month_directories      (create_month_directories C:\Directory)
-    find_scan_at_number 123-a*    (find_scan_at_number 123-a* C:\Directory)       
+    create_month_folders               (create_month_folders C:\Directory)
+    find_protocol_at_number 123-A      (find_protocol_at_number 123-A C:\Directory)
+.NOTES
+    Псевдонимы функций:
+
+    backuping_to_month >> month
+    backuping_to_year >> year
+    find_protocol_at_number >> find
+    create_month_folders >> cmds
+    get_script_info >> help
  #>
