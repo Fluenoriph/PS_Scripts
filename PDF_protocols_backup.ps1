@@ -8,11 +8,12 @@
 # **************************************
 
          
-$work_dirs = Get-Content -Path .\work_pathes.txt -TotalCount 2 -Encoding utf8
+$work_dirs = Get-Content -Path .\work_pathes.txt -TotalCount 2 -Encoding utf8 # выбор директории и выбор дисков, сетевых .....
 $source_path = $work_dirs[0]
-$destination_path = $work_dirs[1] 
+$destination_path = $work_dirs[1]
+ 
 $global:count = 0; $global:year_sum = 0
-     
+
 $work_library = @{
     January = @{
         value = 01;
