@@ -1,69 +1,121 @@
-#$data_month = @{01 = "Январь"; 02 = "Февраль"; 03 = "Март"; 04 = "Апрель"; 05 = "Май"; 06 = "Июнь"; 07 = "Июль"; 08 = "Август"; 09 = "Сентябрь"; 10 = "Октябрь"; 11 = "Ноябрь"; 12 = "Декабрь"}
+$global:data_month = @{'01' = "Январь"; '02' = "Февраль"; '03' = "Март"; '04' = "Апрель"; '05' = "Май"; '06' = "Июнь"; '07' = "Июль"; '08' = "Август"; '09' = "Сентябрь"; '10' = "Октябрь"; '11' = "Ноябрь"; '12' = "Декабрь"}
 
-$global:p = 'C:\Users\Mahabhara\Desktop\сканы'
+$source = 'C:\Users\Mahabhara\Desktop\сканы'
 
-$month_value = '01'
+$dest = 'C:\Users\Mahabhara\Desktop\result_test\Январь'   # + '01'  -join
 
-$rgx = ('^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-', '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]')
+$month_value = '01'   # validation ..keys ??
 
 
 class BackupBlock {
-    [string[]] $rgx
-    [string] $month_value
-    [array] $files
+    [string] $source_path
+    hidden [array] $files = @(@(), @())
 
+    [string] $month_value
     [int] $all_sum
     [int] $simple_files_sum
     [int] $eias_files_sum
-
-    [int] $phys_protocols_sum
-    [int] $rad_protocols_sum
-    [Int] $furniture_protocols_sum
-
-    [int] $ars_phys_protocols_sum
-    [int] $ars_rad_protocols_sum
-    [Int] $ars_furniture_protocols_sum
-
+    
+    hidden [int[]] $protocol_type_sums
     [string[]] $missing_protocols
     
-    BackupBlock([string] $month_value) {
-        $this.month_value = $month_value
-        $this.rgx = ('^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-', '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]')
+    hidden [string[]] $rgx = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-', '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
+    
+    BackupBlock([string] $p) {
+        $this.source_path = $p
+    }
 
-        foreach ($i in (0, 1)) {
-            $this.files[$i] = Get-ChildItem -Path $global:p | Where-Object Name -Match $($rgx[$i] + "\d{2}\.$month_value\.\d{4}\.pdf$")
+    [array] get_files_block([string] $x) {        # обработка исключения
+        foreach ($i in (0, 1)) { $this.files[$i] = Get-ChildItem -Path $this.source_path | Where-Object Name -Match $($this.rgx[$i] + "\d{2}\.$x\.\d{4}\.pdf$") }
+        
+        $this.month_value = $global:data_month[$x]
+        $this.simple_files_sum = $this.files[0].Count
+        $this.eias_files_sum = $this.files[1].Count
+        $this.all_sum = $this.simple_files_sum + $this.eias_files_sum
+
+        if ($this.all_sum -ne 0) {
+            foreach ($i in $this.rgx[2..7]) {
+                [int[]]$n = $this.files[0] | Where-Object Name -Match "^(?<number>\d+)-$i-" | ForEach-Object { [int]$Matches.number } | Sort-Object
+                $this.protocol_type_sums += $n.Count
+                
+                if ($n.Count -gt 2) {
+                    $y = [System.Collections.ArrayList]::new()
+                    $y.AddRange($n[0]..$n[-1])
+                    $n.GetEnumerator().ForEach({ $y.Remove($_) })
+                    
+                    if ($y.Count -gt 0) {
+                        $this.missing_protocols += $y | ForEach-Object { -join([string]$_, '-', $i.Replace('[', '')) } | ForEach-Object { $_.Replace(']', '') }   
+                    }
+                    else { continue }
+                }
+                else { continue }
+            }
         }
+        else { Write-Host "За $($this.month_value) сканов не найдено !" }
+    
+    return $this.files[0] + $this.files[1] | Sort-Object        
+    } 
+}
 
+
+class Backuping {
+    [string] $destination_path
+
+    [array] $prepared_block
+    [string[]] $files_in_backup_storage
+    
+    [bool] $status
+    [int] $sent_files
+        
+    Backuping([string] $p, [array] $x) {
+        $this.destination_path = $p
+        $this.prepared_block = $x
+        $this.files_in_backup_storage = Get-ChildItem -Path $p -File -Filter *.pdf -Name | Sort-Object    # hash ???
+    }
+
+    [bool] tracing([array] $x) {
+        $x | Copy-Item -Destination $this.destination_path
+
+        if ($?) { return $this.status = $true }
+        else { return $this.status = $false }
+    }
+
+    [int] find_duplicates() {
+        $j = 0
+
+        foreach ($i in $this.prepared_block) {
+            if ($this.files_in_backup_storage -contains $i.Name) { $j += 1 }
+            else { continue }
+        }
+        return $j
     }
 
 
-    
+    [int] backup() {
+        if ($this.files_in_backup_storage.Count -eq 0) -or () {
+            $this.tracing($this.prepared_block)     
+        }
+
+        else {
+            
+            
+            
+
+        }
+
+    }
+    return
 }
 
 
+$x = [BackupBlock]::new($source)
+
+$y = [Backuping]::new($dest)
+
+$f = $x.get_files_block($month_value)
 
 
 
-
-
-
-$files = @(@(), @())
-
-foreach ($i in (0, 1)) {
-    $files[$i] = Get-ChildItem -Path $p | Where-Object Name -Match $($rgx[$i] + "\d{2}\.$month_value\.\d{4}\.pdf$")
-}
-
-
-# **********************************************
-function get_protocol_numbers {
-    $n = $files[0] | Where-Object Name -Match '^(?<number>\d+)-[ф][а]-' | ForEach-Object {[int]$Matches.number} | Sort-Object    # номера типа протокола
-
-    $x = New-Object System.Collections.ArrayList
-    $x.AddRange($n[0]..$n[-1])
-
-    $n.GetEnumerator().ForEach({$x.Remove($_)})    # пропущенные номера
-    $x
-}
 
 
 
