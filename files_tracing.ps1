@@ -62,49 +62,52 @@ class Backuping {
     [string] $destination_path
 
     [array] $prepared_block
-    [string[]] $files_in_backup_storage
-    
+        
     [bool] $status
     [int] $sent_files
         
     Backuping([string] $p, [array] $x) {
         $this.destination_path = $p
         $this.prepared_block = $x
-        $this.files_in_backup_storage = Get-ChildItem -Path $p -File -Filter *.pdf -Name | Sort-Object    # hash ???
     }
 
     [bool] tracing([array] $x) {
-        $x | Copy-Item -Destination $this.destination_path
+        $x | Copy-Item -Destination $this.destination_path      # check errors !!!!
 
-        if ($?) { return $this.status = $true }
+        if ($?) {
+            $this.sent_files = $x.Count
+            return $this.status = $true 
+        }
         else { return $this.status = $false }
     }
 
     [int] find_duplicates() {
         $j = 0
-
-        foreach ($i in $this.prepared_block) {
-            if ($this.files_in_backup_storage -contains $i.Name) { $j += 1 }
-            else { continue }
+        [string[]]$files_in_backup_storage = Get-ChildItem -Path $this.destination_path -File -Filter *.pdf -Name | Sort-Object    
+        
+        if ($files_in_backup_storage.Count -gt 0) {
+            foreach ($i in $this.prepared_block) {
+                if ($this.files_in_backup_storage -contains $i.Name) { $j += 1 }
+                else { continue }
+            }
+            return $j
         }
-        return $j
+        else { return $j }        
     }
 
-
-    [int] backup() {
-        if ($this.files_in_backup_storage.Count -eq 0) -or () {
+    [void] backup() {
+        if ($this.find_duplicates() -eq 0) {
             $this.tracing($this.prepared_block)     
         }
-
         else {
-            
+            Write-Host 
             
             
 
         }
 
     }
-    return
+    
 }
 
 
