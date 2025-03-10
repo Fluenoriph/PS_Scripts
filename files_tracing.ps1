@@ -3,6 +3,8 @@ using namespace System.Collections.Generic
 
 $global:data_month = @{'01' = "Январь"; '02' = "Февраль"; '03' = "Март"; '04' = "Апрель"; '05' = "Май"; '06' = "Июнь"; '07' = "Июль"; '08' = "Август"; '09' = "Сентябрь"; '10' = "Октябрь"; '11' = "Ноябрь"; '12' = "Декабрь"}
 
+$global:separatop = '- - - - - - - - - - - - - - - - - - - - - - - - - - - -'
+
 $source = -join ($home, '\Desktop\сканы')
 
 $month_value = '01'   # validation ..keys ??
@@ -14,22 +16,23 @@ class BackupBlock {
     hidden [string] $source_path
     hidden [List[psobject]] $files = @(@(), @())
 
-    [string] $month_value
-    hidden [List[int]] $simple_files_types_sums   # show dict !!
-    [int] $eias_files_sum
+    [string] $month
     [int] $all_sum
-    [List[psobject]] $missing_protocols
+    [int] $eias_files_sum
+    hidden [List[int]] $simple_files_types_sums       
+    [List[string]] $missing_protocols
     
     hidden [List[string]] $rgx = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-', '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
+    hidden [List[string]] $protocol_types = '> Физ. факторы (Усс.): ', '> Рад. контроль (Усс.): ', '> Замеры мебели (Усс.): '
     
     BackupBlock([string] $p) {
         $this.source_path = $p
     }
 
     [List[System.IO.FileInfo]] get_files_block([string] $x) {        # обработка исключения
-        foreach ($i in (0, 1)) { $this.files[$i] = Get-ChildItem -Path $this.source_path | Where-Object Name -Match $($this.rgx[$i] + "\d{2}\.$x\.\d{4}\.pdf$") }
+        foreach ($i in (0, 1)) { $this.files[$i] = Get-ChildItem -Path $this.source_path -File | Where-Object Name -Match $($this.rgx[$i] + "\d{2}\.$x\.\d{4}\.pdf$") }
         
-        $this.month_value = $global:data_month[$x]
+        $this.month = $global:data_month[$x]
         $this.eias_files_sum = $this.files[1].Count
         $this.all_sum = $this.files[0].Count + $this.eias_files_sum
 
@@ -39,62 +42,92 @@ class BackupBlock {
                 $this.simple_files_types_sums += $n.Count
                 
                 if ($n.Count -gt 2) {
-                    $this.missing_protocols = $n[0]..$n[-1]
-                    $n.GetEnumerator().ForEach({ $this.missing_protocols.Remove($_) })
+                    [List[int]] $r = $n[0]..$n[-1]
+                    $n.GetEnumerator().ForEach({ $r.Remove($_) })
                     
-                    if ($this.missing_protocols.Count -gt 0) {
-                        $this.missing_protocols | ForEach-Object { -join([string]$_, '-', $i.Replace('[', '')) } | ForEach-Object { $_.Replace(']', '') }   
+                    if ($r.Count -gt 0) {
+                        $this.missing_protocols += $r | ForEach-Object { -join([string]$_, '-', $i.Replace('[', '')) } | ForEach-Object { $_.Replace(']', '') }
                     }
                     else { continue }
                 }
                 else { continue }
             }
+
+            $this.protocol_types += $this.protocol_types | ForEach-Object { $_.Replace('Усс', 'Арс') }
+            Write-Host $this.out_block_log()
+            Write-Host "*** Пропущенные сканы:`n$($this.missing_protocols -join "`n")"
         }
-        else { Write-Host "За $($this.month_value) сканов протоколов не найдено !" }
+        else { Write-Host "За $($this.month) сканов протоколов не найдено !" }
     
     return $this.files[0] + $this.files[1] | Sort-Object        
-    } 
+    }
+    
+    [List[string]] out_block_log() {
+        [List[string]] $log = "`nПериод (месяц): $($this.month)", "Всего сканов: $($this.all_sum)`n", "> ЕИАС: $($this.eias_files_sum)"
+        
+        foreach ($i in 0..5) { $log.Add($(-join($this.protocol_types[$i], $this.simple_files_types_sums[$i]))) }
+        $log.Add("`n")
+        
+        return $($log -join "`n")
+    }
+
+    [void] logging() {
+        $p = $(-join('.\logs\отчет_', $this.month, '.txt'))
+        $data = $this.out_block_log() 
+        $data += $this.files | ForEach-Object { $_.name }
+
+        $data | Out-File -FilePath $p
+         
+        #Write-Host $data
+
+    }
+
+
+
+
 }
 
 
 class Backuping {
     hidden [string] $destination_path    
-    hidden [List[int]] $sent_files
+    [int] $backuping_count
+    hidden [string] $out_log = "`nУспешно! Скопировано файлов: "
         
-    Backuping([string] $p) {
-        $this.destination_path = $p
+    Backuping([string] $p) { 
+        $this.destination_path = $p 
     }
-        
-    [int] backup([List[System.IO.FileInfo]] $prepared_block) {
+        # status ??
+    [void] backup([List[System.IO.FileInfo]] $prepared_block) {
         [List[psobject]] $backup_block = @(@(), @())
-        [List[System.IO.FileInfo]] $dupl = @()
-        
+                
         foreach ($i in $prepared_block) {
-            $file_path = -join($this.destination_path, '\', $i.Name)
-
-            if (Test-Path $file_path) { $dupl += $i }
+            if (Test-Path $(-join($this.destination_path, '\', $i.Name))) { $backup_block[0] += $i }
             else { $backup_block[1] += $i }
         }
                 # try catch ???
-        if ($backup_block[0].Count -eq 0) {
-            $backup_block[1] | Copy-Item -Destination $this.destination_path
+        if ($backup_block[0].Count -eq 0) { 
+            $prepared_block | Copy-Item -Destination $this.destination_path
+            $this.backuping_count = $prepared_block.Count
+            Write-Host $(-join($this.out_log, [string] $this.backuping_count, "`n"))
         }
         else {
-            $d = $dupl | Select-Object -Property Name
-            Write-Host "Внимание ! Следующие файлы уже существуют в хранилище и будут перезаписаны.`n"
-            Write-Host $d
-            $task = Read-Host 'Подтвердить: (Y); Отмена (N)'
+            [List[string]] $d = $backup_block[0] | ForEach-Object { $_.Name.Replace('.pdf', ';') } 
+            Write-Host "`nВнимание! Следующие файлы уже существуют в хранилище и будут перезаписаны.`n`n$($d -join "`n")`n"
+            $task = Read-Host "Подтвердить - (Y); Отмена - (N)"
 
             if ($task -eq 'Y') {
                 $backup_block[0] | Copy-Item -Destination $this.destination_path -Force
                 $backup_block[1] | Copy-Item -Destination $this.destination_path
+                $this.backuping_count = $backup_block[0].Count + $backup_block[1].Count
+                Write-Host $(-join($this.out_log, [string] $this.backuping_count, "`n"))
             }
-            else { $backup_block[1] | Copy-Item -Destination $this.destination_path }
-        }
-        $this.sent_files.Add($backup_block[0].Count)
-        $this.sent_files.Add($backup_block[1].Count)
-
-        return $this.sent_files
+            else { 
+                Write-Host "`nРезервное копирование сброшено!`n"
+            }          
+        }   
+    
+    
+    
     }   
 }
 
@@ -103,6 +136,8 @@ $x = [BackupBlock]::new($source)
 $y = [Backuping]::new($dest)
 
 $f = $y.backup($x.get_files_block($month_value))
+
+$x.logging()
 
 
 
