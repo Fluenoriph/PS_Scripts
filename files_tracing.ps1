@@ -9,7 +9,9 @@ $source = -join ($home, '\Desktop\сканы')
 
 $month_value = '01'   # validation ..keys ??
 
-$dest = -join ($home, '\Desktop\result_test\', $global:data_month[$month_value])  
+$main_dest_path = -join($home, '\Desktop\result_test\')
+
+$dest = -join ($main_dest_path, $global:data_month[$month_value])  
 
 
 class BackupBlock {
@@ -24,6 +26,7 @@ class BackupBlock {
     
     hidden [List[string]] $rgx = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-', '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
     hidden [List[string]] $protocol_types = '> Физ. факторы (Усс.): ', '> Рад. контроль (Усс.): ', '> Замеры мебели (Усс.): '
+    hidden [List[string]] $log_path = '.\logs\отчет_', '.txt'
     
     BackupBlock([string] $p) {
         $this.source_path = $p
@@ -57,7 +60,7 @@ class BackupBlock {
             Write-Host $this.out_block_log()
             Write-Host "*** Пропущенные сканы:`n$($this.missing_protocols -join "`n")"
         }
-        else { Write-Host "За $($this.month) сканов протоколов не найдено !" }
+        else { Write-Host "`nЗа $($this.month) сканов протоколов не найдено!`n" }
     
     return $this.files[0] + $this.files[1] | Sort-Object        
     }
@@ -72,17 +75,15 @@ class BackupBlock {
     }
 
     [void] logging() {
-        $p = $(-join('.\logs\отчет_', $this.month, '.txt'))
         $data = $this.out_block_log() 
         $data += $this.files | ForEach-Object { $_.name }
-
-        $data | Out-File -FilePath $p
-         
-        #Write-Host $data
-
+        $data | Out-File -FilePath $(-join($this.log_path[0], $this.month, $this.log_path[1]))      
     }
 
-
+    [void] get_log_info([string] $x) {
+        Get-Content -Path $(-join($this.log_path[0], $global:data_month[$x], $this.log_path[1])) | Write-Host
+        Write-Host "`n"
+    }
 
 
 }
@@ -125,19 +126,30 @@ class Backuping {
                 Write-Host "`nРезервное копирование сброшено!`n"
             }          
         }   
+    }
     
-    
-    
-    }   
+    [void] create_backup_folders() {
+
+    }
+
 }
 
+
+class DrivesControls {
+    
+
+
+}
 
 $x = [BackupBlock]::new($source)
 $y = [Backuping]::new($dest)
 
 $f = $y.backup($x.get_files_block($month_value))
 
-$x.logging()
+#$x.logging()
+
+#$x.get_log_info($month_value)
+
 
 
 
