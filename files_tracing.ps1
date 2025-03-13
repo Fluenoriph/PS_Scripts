@@ -136,16 +136,46 @@ class Backuping {
 
 
 class DrivesControls {
+    [string] $config = '.\config_pathes.ini'   
+    [list[psobject]] $pathes
+    [List[string]] $drives = 'Source', 'Destination'
+
+    DrivesControls() {        
+        try {$this.pathes = Get-Content -Path $this.config -Encoding utf8 | ConvertFrom-StringData
+        } catch {Write-Host "Error"}
+        
+        if ($? -eq $true) {
+            New-PSDrive -Name $this.drives[0] -PSProvider FileSystem -Root $this.pathes.source -Scope Global
+            New-PSDrive -Name $this.drives[1] -PSProvider FileSystem -Root $this.pathes.destination -Scope Global
+        }
+        else {
+            Write-Host "`nОшибка чтения настроек!`n>>> Файл '$($this.config)' не существует в корневой директории или неверное имя файла.`n"
+        }
+    }
+       # checks errors !!!!
+    [void] reconfig_source_path([string] $x) {
+        Remove-PSDrive -Name $this.drives[0]
+        (Get-Content -Path $this.config -Encoding utf8) -replace "source=.+", "source=$($x.Replace('\', '\\'))" | Set-Content -Path $this.config
+        New-PSDrive -Name $this.drives[0] -PSProvider FileSystem -Root $x -Scope Global
+    }
+
+    [void] reconfig_backup_path([string] $x) {
+        Remove-PSDrive -Name $this.drives[1]
+        (Get-Content -Path $this.config -Encoding utf8).Replace($($this.pathes.destination.Replace('\', '\\')), $($x.Replace('\', '\\'))) | Set-Content -Path $this.config
+        $this.setup_backup_drive($x)
+    }
     
+    [void] setup_backup_drive([string] $s) { New-PSDrive -Name $this.drives[1] -PSProvider FileSystem -Root $s -Scope Global }
 
-
+    
 }
 
 $x = [BackupBlock]::new($source)
 $y = [Backuping]::new($dest)
 
-$f = $y.backup($x.get_files_block($month_value))
+#$f = $y.backup($x.get_files_block($month_value))
 
+$d = [DrivesControls]::new()
 #$x.logging()
 
 #$x.get_log_info($month_value)
