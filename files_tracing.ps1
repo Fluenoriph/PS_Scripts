@@ -24,7 +24,7 @@ class BackupBlock {
     hidden [List[int]] $simple_files_types_sums       
     [List[string]] $missing_protocols
     
-    hidden [List[string]] $rgx = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-', '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
+    hidden [List[regex]] $rgx = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-', '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
     hidden [List[string]] $protocol_types = '> Физ. факторы (Усс.): ', '> Рад. контроль (Усс.): ', '> Замеры мебели (Усс.): '
     hidden [List[string]] $log_path = '.\logs\отчет_', '.txt'
     
@@ -138,36 +138,64 @@ class Backuping {
 class DrivesControls {
     [string] $config = '.\config_pathes.ini'   
     [list[psobject]] $pathes
-    [List[string]] $drives = 'Source', 'Destination'
-
+    [System.Collections.Hashtable] $drives = @{'-s' = 'source'; '-d' = 'destination'}
+    [scriptblock] $bad_path_message = { param($dir_type_out, $path) "$dir_type_out'$path' не существует или неверное имя! >> Установите верный путь!`n" }
+    
     DrivesControls() {        
-        try {$this.pathes = Get-Content -Path $this.config -Encoding utf8 | ConvertFrom-StringData
-        } catch {Write-Host "Error"}
-        
+        $this.pathes = Get-Content -Path $this.config -Encoding utf8 | ConvertFrom-StringData
+                
         if ($? -eq $true) {
-            New-PSDrive -Name $this.drives[0] -PSProvider FileSystem -Root $this.pathes.source -Scope Global
-            New-PSDrive -Name $this.drives[1] -PSProvider FileSystem -Root $this.pathes.destination -Scope Global
+            foreach ($k in $this.drives.Keys | Sort-Object -Descending) {
+                $disk = $this.drives.$k
+                $path = $this.pathes.$disk
+                $type_out = $this.write_directory_type($disk)
+
+                New-PSDrive -Name $disk -PSProvider FileSystem -Root $path -Scope Global 2>$null
+
+                if ($? -eq $false) { Write-Host $(&$this.bad_path_message -dir_type_out $type_out -path $path) }
+                
+                else { Write-Host $(-join($type_out, $path))}
+            }           
         }
         else {
-            Write-Host "`nОшибка чтения настроек!`n>>> Файл '$($this.config)' не существует в корневой директории или неверное имя файла.`n"
+            Write-Host "`n* Ошибка чтения настроек! *`n`n>>> Файл '$($this.config)' не существует в корневой директории или неверное имя файла!`n"
         }
     }
-       # checks errors !!!!
-    [void] reconfig_source_path([string] $x) {
-        Remove-PSDrive -Name $this.drives[0]
-        (Get-Content -Path $this.config -Encoding utf8) -replace "source=.+", "source=$($x.Replace('\', '\\'))" | Set-Content -Path $this.config
-        New-PSDrive -Name $this.drives[0] -PSProvider FileSystem -Root $x -Scope Global
-    }
+    
+    [void] reconfig_path() {
+        [bool] $err = $true
 
-    [void] reconfig_backup_path([string] $x) {
-        Remove-PSDrive -Name $this.drives[1]
-        (Get-Content -Path $this.config -Encoding utf8).Replace($($this.pathes.destination.Replace('\', '\\')), $($x.Replace('\', '\\'))) | Set-Content -Path $this.config
-        $this.setup_backup_drive($x)
+        do {
+            Write-Host $global:separatop
+            Write-Host "<тип директория> [тип: -s - исходный; -d - резервный]`n`n>> Пример: -s C:\Directory\Folder\Source files`n"
+            $x = Read-Host "Ввод"
+            $parameters += $x -split " ", 2
+
+            if ($parameters[0] -match "^[-][s|d]$") {
+                $drive = $this.drives[$parameters[0]]
+                Get-PSDrive -Name $drive 2>$null
+                if ($? -eq $false) { Remove-PSDrive -Name $drive }
+                
+                (Get-Content -Path $this.config -Encoding utf8) -replace "$drive=.+", "$drive=$($parameters[1].Replace('\', '\\'))" | Set-Content -Path $this.config
+                New-PSDrive -Name $drive -PSProvider FileSystem -Root $parameters[1] -Scope Global 2>$null
+                $err = $?   
+            
+                if ($err -eq $false) { Write-Host $(&$this.bad_path_message -dir_type_out $this.write_directory_type($drive) -path $parameters[1]) }
+                else { Write-Host $(-join($this.write_directory_type($drive), "успешно установлена!`n")) }   
+            }
+            else {
+                Write-Host "`n* Введен неверный тип директории! * >> Вводите заново!`n"
+                $err = $false
+            }
+            
+        } while ($err -eq $false)
     }
     
-    [void] setup_backup_drive([string] $s) { New-PSDrive -Name $this.drives[1] -PSProvider FileSystem -Root $s -Scope Global }
-
-    
+    [string] write_directory_type([string] $type) {
+        if ($type -eq 'source') { return "`nИсходная директория: " }
+        
+        else { return "`nДиректория резервного копирования: " }
+    }
 }
 
 $x = [BackupBlock]::new($source)
