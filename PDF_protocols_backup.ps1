@@ -8,7 +8,7 @@
 # **************************************
 
          
-$work_dirs = Get-Content -Path .\work_pathes.txt -TotalCount 2 -Encoding utf8 # выбор директории и выбор дисков, сетевых .....
+$work_dirs = Get-Content -Path .\work_pathes.txt -TotalCount 2 -Encoding utf8 
 $source_path = $work_dirs[0]
 $destination_path = $work_dirs[1]
  
