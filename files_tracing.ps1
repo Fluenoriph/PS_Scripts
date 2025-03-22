@@ -21,14 +21,14 @@ class BackupBlock {
     [int] $eias_files_sum
     hidden [List[int]] $simple_files_types_sums       
     [List[string]] $missing_protocols
-    [scriptblock] $out_missing_numbers = { "`n** Пропущенные сканы:`n$($this.missing_protocols -join "`n")" }
-    
+        
     [System.Collections.Hashtable] $data_month = @{'01' = "Январь"; '02' = "Февраль"; '03' = "Март"; '04' = "Апрель"; '05' = "Май"; '06' = "Июнь"; 
         '07' = "Июль"; '08' = "Август"; '09' = "Сентябрь"; '10' = "Октябрь"; '11' = "Ноябрь"; '12' = "Декабрь"}
 
     hidden [List[string]] $rgx = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-', '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
     hidden [List[string]] $protocol_types = '> Физ. факторы (Усс.): ', '> Рад. контроль (Усс.): ', '> Замеры мебели (Усс.): '
     [scriptblock] $result_out = { Write-Host ("`nУспешно! Скопировано файлов: $($this.all_sum)`n") }
+    [scriptblock] $log_path = { param($month) ".\logs\отчет_$month.txt" }
     
     [void] get_files_block([string] $month_value) {        # обработка исключения
         [list[psobject]] $files_block = @(@(), @())
@@ -55,10 +55,7 @@ class BackupBlock {
                     else { continue }
                 }
                 else { continue }
-            }
-            
-            #Write-Host $this.out_block_log()
-            #Write-Host &$this.out_missing_numbers
+            }            
         }
         else { Write-Host "`nЗа $($this.month) сканов протоколов не найдено!`n" }
     
@@ -92,29 +89,25 @@ class BackupBlock {
         }   
     }
 
-    [void] backup_to_year() {
-        
-
-
-    }
-
     [void] create_backup_folders() {
-        foreach ($key in $global:data_month.keys | Sort-Object) {
-            $month = $global:data_month.$key
-            $folder = -join('destination:\', '\', $month)
+        foreach ($key in $this.data_month.keys | Sort-Object) {
+            $value = $this.data_month.$key
+            $folder = -join('destination:\', '\', $value)
 
             if (Test-Path $folder) {
-                Write-Host "`nПапка за $month уже существует!"
+                Write-Host "`nПапка за $value уже существует!"
             }
             else {
                 New-Item -Path $folder -Type "directory" 2>$null
 
-                if ($? -eq $true) { Write-Host "`nПапка за $month успешно создана!" }
-                else { Write-Host "`n`Ошибка! Папка за $month не создана!`n" }
+                if ($? -eq $true) { Write-Host "`nПапка за $value успешно создана!" }
+                else { Write-Host "`n`Ошибка! Папка за $value не создана!`n" }
             } 
         }
     }
 
+    [List[string]] out_missing_numbers() { return "`n** Пропущенные сканы:`n`n$($this.missing_protocols -join "`n")" }
+    
     [List[string]] out_block_log() {
         [List[string]] $log = "`nПериод (месяц): $($this.month)", "Всего сканов: $($this.all_sum)`n", "> ЕИАС: $($this.eias_files_sum)"
         
@@ -124,14 +117,16 @@ class BackupBlock {
     }
 
     [void] logging() {
-        $data = $this.out_block_log() 
-        $data += $this.files | ForEach-Object { $_.name }
-        $data | Out-File -FilePath $(".\logs\отчет_$($this.month).txt")
+        $data = $this.out_block_log()
+        $t = $this.files | ForEach-Object { $_.name }
+        $data += "`nОтправленные сканы:`n`n$($t -join "`n")"
+        $data += $this.out_missing_numbers()
+        $data += $global:break_line
+        $data | Out-File -FilePath $(&$this.log_path -month $this.month)
     }
 
     [void] get_log_info([string] $x) {
-        Get-Content -Path -join($this.log_path[0], $global:data_month.$x, $this.log_path[1]) | Write-Host
-        Write-Host "`n"
+        Get-Content -Path $(&$this.log_path -month $this.data_month.$x) | Write-Host
     }
 }
    
@@ -141,7 +136,7 @@ class DrivesControl {
     [list[psobject]] $pathes
 
     [System.Collections.Hashtable] $drives = @{'-s' = 'source'; '-d' = 'destination'}
-    [System.Collections.Hashtable] $drive_setup_status = @{'source' = $null; 'destination' = $null}
+    [System.Collections.Hashtable] $drive_setup_status = @{'source' = $false; 'destination' = $false}    #test !!!
 
     [scriptblock] $bad_path_message = { param($dir_type_out, $path) "$dir_type_out'$path' не существует или неверное имя! >> Установите верный путь!`n" }
     [scriptblock] $write_directory_type = { param($type) if ($type -eq 'source') { "Исходная директория: " } else { "Директория резервного копирования: " } }
@@ -161,8 +156,8 @@ class DrivesControl {
                     Write-Host $(-join($type_out, $path, "`n"))
                 }
                 else {
-                    $this.drive_setup_status.$disk = $false
-                    Write-Host $(&$this.bad_path_message -dir_type_out $type_out -path $path) 
+                    Write-Host $(&$this.bad_path_message -dir_type_out $type_out -path $path)
+                    $this.reconfig_path()
                 }
             }           
         }
@@ -173,8 +168,7 @@ class DrivesControl {
         [list[string]] $current_drives = Get-PSDrive -PSProvider FileSystem | ForEach-Object { $_.Name }
 
         do {
-            Write-Host $global:break_line
-            Write-Host "<тип директории> [тип: -s - исходный; -d - резервный]`n`n>> Пример: -s C:\Directory\Folder\Source files`n"
+            Write-Host "$($global:break_line)`n<тип директории> [тип: -s - исходный; -d - резервный]`n`n>> Пример: -s C:\Directory\Folder\Source files`n"
             $x = Read-Host "Ввод"
             
             [list[string]] $parameters = @()
@@ -188,12 +182,16 @@ class DrivesControl {
                 New-PSDrive -Name $drive -PSProvider FileSystem -Root $parameters[1] -Scope Global 2>$null
                 [bool] $err = $?   
             
-                if ($err -eq $false) { Write-Host $(&$this.bad_path_message -dir_type_out $(&$this.write_directory_type -type $drive) -path $parameters[1]) }
-                else { Write-Host $(-join("`n", $(&$this.write_directory_type -type $drive), "успешно установлена!`n")) }   
+                if ($err -eq $false) {
+                    Write-Host $(&$this.bad_path_message -dir_type_out $(&$this.write_directory_type -type $drive) -path $parameters[1]) }
+                else {
+                    $this.drive_setup_status.$drive = $true
+                    $dir = &$this.write_directory_type -type $drive
+                    Write-Host $(-join("`n", $dir.Replace(':', ''), "успешно установлена!`n")) }   
             }
             else {
-                Write-Host "`n* Введен неверный тип директории! * >> Вводите заново!`n"
                 $err = $false
+                Write-Host "`n* Введен неверный тип директории! * >> Вводите заново!`n"
             }
             
         } while ($err -eq $false)
@@ -219,25 +217,37 @@ $global:flow_separator
 
 $drives_control = [DrivesControl]::new()
 function rc { return $drives_control.reconfig_path() }
-
-$global:month_value = '01'   #check
 $data_block = [BackupBlock]::new()
 
-$backup_control = [Backuping]::new()
+function backup_process {
+    $set_values = $data_block.data_month.keys | Sort-Object
+    Write-Host "$($global:break_line)`n>> Выберите, за какой месяц нужно отправить сканы >>`n`n> [$($set_values -join '; ')] <`n"
 
-<#
+    do {
+        $value = Read-Host "Ввод"
+        if ($set_values -contains $value) {
+            $data_block.get_files_block($value)
+            $data_block.out_block_log()
+            $data_block.out_missing_numbers()
+            $data_block.backuping()
+            $data_block.logging()
+        }
+        else { 
+            Write-Host "`n* Неверное значение! * >> Попробуйте заново!`n" 
+            continue
+        }
+
+    } while ($set_values -notcontains $value) 
+}
+
+if ($drives_control.drive_setup_status.source -eq $true -and $drives_control.drive_setup_status.destination -eq $true) { backup_process }
+
+else { exit }
 
 
-$backup_control.backup($data_block.get_files_block())#>
 
 
 
-
-
-
-#$x.logging()
-
-#$x.get_log_info($month_value)
 
 
 
