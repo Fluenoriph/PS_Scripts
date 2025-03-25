@@ -26,23 +26,26 @@ class BackupBlock {
     hidden [System.Collections.Hashtable] $data_month = @{'01' = "Январь"; '02' = "Февраль"; '03' = "Март"; '04' = "Апрель"; '05' = "Май"; '06' = "Июнь"; 
         '07' = "Июль"; '08' = "Август"; '09' = "Сентябрь"; '10' = "Октябрь"; '11' = "Ноябрь"; '12' = "Декабрь"}
 
-    hidden [List[string]] $rgx = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-', '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
-    hidden [List[string]] $protocol_types = '> Физ. факторы (Усс.): ', '> Рад. контроль (Усс.): ', '> Замеры мебели (Усс.): '
+    hidden [List[string]] $file_type_patterns = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-'
+    [List[string]] $protocol_type_patterns = '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
+    hidden [List[string]] $protocol_types = '> Физ. факторы (Усс.): ', '> Рад. контроль (Усс.): ', '> Замеры мебели (Усс.): ', 
+        '> Физ. факторы (Арс.): ', '> Рад. контроль (Арс.): ', '> Замеры мебели (Арс.): '
     hidden [scriptblock] $result_out = { Write-Host ("`nУспешно! Скопировано файлов: $($this.all_sum)`n") }
     hidden [scriptblock] $log_path = { param($month) ".\logs\отчет_$month.txt" }
     
-    BackupBlock([string] $month_value) {                  # обработка исключения
-        [list[psobject]] $files_block = @(@(), @())
-        
-        foreach ($i in (0, 1)) { $files_block[$i] = Get-ChildItem -Path source:\ -File | Where-Object Name -Match $($this.rgx[$i] + "\d{2}\.$month_value\.$($this.year)\.pdf$") }
-        
+    BackupBlock([string] $month_value) {
         $this.month = $this.data_month.$month_value
+                                                                         # обработка исключения
+        [list[psobject]] $files_block = @(@(), @())
+        foreach ($i in (0, 1)) { $files_block[$i] = Get-ChildItem -Path source:\ -File | Where-Object Name -Match $($this.file_type_patterns[$i] + "\d{2}\.$month_value\.$($this.year)\.pdf$") }
+        
         $this.eias_files_sum = $files_block[1].Count
         $this.all_sum = $files_block[0].Count + $this.eias_files_sum
-        $this.protocol_types += $this.protocol_types | ForEach-Object { $_.Replace('Усс', 'Арс') }
-        
+                
         if ($this.all_sum -ne 0) {
-            foreach ($i in $this.rgx[2..7]) {
+            
+            
+            foreach ($i in $this.protocol_type_patterns) {
                 [List[int]] $n = $files_block[0] | Where-Object Name -Match "^(?<number>\d+)-$i-" | ForEach-Object { [int]$Matches.number } | Sort-Object
                 $this.simple_files_types_sums += $n.Count
                 
@@ -59,6 +62,10 @@ class BackupBlock {
             }
             $this.files = $files_block[0] + $files_block[1] | Sort-Object        
         }
+
+
+
+        
         else { Write-Host "`nЗа $($this.month) сканов протоколов не найдено!`n" }
     }
     
@@ -93,7 +100,12 @@ class BackupBlock {
             else { Write-Host "`nРезервное копирование сброшено!`n" }          
         }   
     }
-        
+    
+    [void] backup_to_year() {
+        [list[psobject]] $full_block = Get-ChildItem -Path source:\ -File | Where-Object Name -Match $($this.rgx[$i] + "\d{2}\.\d{2}\.$($this.year)\.pdf$")
+
+    }
+
     [void] create_backup_folders() {
         foreach ($key in $this.data_month.keys | Sort-Object) {
             $value = $this.data_month.$key
@@ -240,10 +252,10 @@ function backup_process {
             }
             else { return }
         }
-        elseif ($value -ceq 'full') {
+        <#elseif ($value -ceq 'full') {
             [int] $full_sum
             [int] $eias_full_sum
-            [list[int]] $simple_full_sum
+            [list[int]] $simple_full_sum = @()
             [int] $full_missings
                         
             foreach ($i in $set_values) {
@@ -262,7 +274,7 @@ function backup_process {
 
             Write-Host "`nГод: $($data_block.year)`nВсего сканов: $full_sum`n> ЕИАС: $eias_full_sum`n"
 
-        }
+        }#>
         else { 
             Write-Host "`n* Неверное значение! * >> Попробуйте заново!`n" 
             continue
