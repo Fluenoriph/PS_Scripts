@@ -17,24 +17,30 @@ $global:flow_separator = '> ' * 40
 class BackupBlock {
     hidden [List[psobject]] $files
     hidden [string] $year = (Get-Date -Format "yyyy")
-    hidden [string] $month
+    hidden [string] $time_span
     hidden [int] $all_sum
     hidden [int] $eias_files_sum
     hidden [List[int]] $simple_files_types_sums       
     hidden [List[string]] $missing_protocols
+    hidden [bool] $status
         
     hidden [System.Collections.Hashtable] $data_month = @{'01' = "Январь"; '02' = "Февраль"; '03' = "Март"; '04' = "Апрель"; '05' = "Май"; '06' = "Июнь"; 
         '07' = "Июль"; '08' = "Август"; '09' = "Сентябрь"; '10' = "Октябрь"; '11' = "Ноябрь"; '12' = "Декабрь"}
 
     hidden [List[string]] $file_type_patterns = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-'
+    
     [List[string]] $protocol_type_patterns = '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
     hidden [List[string]] $protocol_types = '> Физ. факторы (Усс.): ', '> Рад. контроль (Усс.): ', '> Замеры мебели (Усс.): ', 
         '> Физ. факторы (Арс.): ', '> Рад. контроль (Арс.): ', '> Замеры мебели (Арс.): '
-    hidden [scriptblock] $result_out = { Write-Host ("`nУспешно! Скопировано файлов: $($this.all_sum)`n") }
+    
+    hidden [scriptblock] $result_out = { Write-Host ("`nУспешно! Скопировано файлов за $($this.time_span) - $($this.all_sum)`n") }
     hidden [scriptblock] $log_path = { param($month) ".\logs\отчет_$month.txt" }
+    hidden [scriptblock] $drop_backup = { Write-Host "`nРезервное копирование сброшено!`n" }
+    hidden [scriptblock] $folder_create_error = { param($dir) Write-Host "`n* Ошибка! * >> Не удалось создать директорию '$dir'`n" }
     
     BackupBlock([string] $month_value) {
-        $this.month = $this.data_month.$month_value
+        if ($this.data_month.Keys -contains $month_value) { $this.time_span = $this.data_month.$month_value }
+        else { $this.time_span = -join($this.year, ' г.') }
                                                                          # обработка исключения
         [list[psobject]] $files_block = @(@(), @())
         foreach ($i in (0, 1)) { $files_block[$i] = Get-ChildItem -Path source:\ -File | Where-Object Name -Match $($this.file_type_patterns[$i] + "\d{2}\.$month_value\.$($this.year)\.pdf$") }
@@ -60,22 +66,31 @@ class BackupBlock {
                 }
                 else { continue }
             }
-            $this.files = $files_block[0] + $files_block[1] | Sort-Object        
+            foreach ($i in (0, 1)) { $this.files += $files_block[$i] }
+            $this.files | Sort-Object
+            $this.status = $true        
         }
 
 
 
         
-        else { Write-Host "`nЗа $($this.month) сканов протоколов не найдено!`n" }
+        else { 
+            $this.status = $false
+            Write-Host "`nЗа $($this.time_span) сканов протоколов не найдено!`n" 
+        }
     }
     
     [void] backuping() {
         [List[psobject]] $temp_block = @(@(), @())
-        [string] $backup_dir = -join('destination:\', '\', $this.month)
+        [string] $backup_dir = -join('destination:\', '\', $this.time_span)
         
         if (-not (Test-Path $backup_dir)) { 
-            New-Item -Path $backup_dir -Type "directory" 
-            if ($? -eq $false) { Write-Host "`n* Ошибка! * >> Директория '$backup_dir' не создана!`n" }
+            New-Item -Path $backup_dir -Type "directory" 2>$null
+            if ($? -eq $false) { 
+                &$this.folder_create_error -dir $backup_dir
+                &$this.drop_backup
+                return 
+            }
         }
                 
         foreach ($i in $this.files) {
@@ -97,37 +112,41 @@ class BackupBlock {
                 $temp_block[1] | Copy-Item -Destination $backup_dir
                 &$this.result_out
             }
-            else { Write-Host "`nРезервное копирование сброшено!`n" }          
+            else { 
+                &$this.drop_backup
+                return 
+            }          
         }   
     }
-    
+            # create !!
     [void] backup_to_year() {
-        [list[psobject]] $full_block = Get-ChildItem -Path source:\ -File | Where-Object Name -Match $($this.rgx[$i] + "\d{2}\.\d{2}\.$($this.year)\.pdf$")
-
-    }
-
-    [void] create_backup_folders() {
         foreach ($key in $this.data_month.keys | Sort-Object) {
             $value = $this.data_month.$key
             $folder = -join('destination:\', '\', $value)
 
             if (-not (Test-Path $folder)) {
                 New-Item -Path $folder -Type "directory" 2>$null
-                if ($? -eq $true) { Write-Host "`nПапка за $value успешно создана!" }
-                else { Write-Host "`n`Ошибка! Папка за $value не создана!`n" }
+                if ($? -eq $false) { 
+                    &$this.folder_create_error -dir $folder
+                    &$this.drop_backup
+                    break
+                    return 
+                }
             } 
         }
     }
 
     [List[string]] out_missing_numbers() {
-        if ($this.missing_protocols.Count -gt 0) { return "`n** Пропущенные сканы:`n`n$($this.missing_protocols -join "`n")" }
-        else { return "`nПропущенных нет!`n" }
+        if ($this.missing_protocols.Count -gt 0) { return "`n** Пропущенные сканы (номера протоколов):`n`n$($this.missing_protocols -join "`n")" }
+        else { return "`nПропущенных нет!" }
     }
 
     [List[string]] out_block_log() {
-        [List[string]] $log = "`nПериод (месяц): $($this.month)", "Всего сканов: $($this.all_sum)`n", "> ЕИАС: $($this.eias_files_sum)"
+        [List[string]] $log = "`nПериод: $($this.time_span)", "Всего сканов: $($this.all_sum)`n", "> ЕИАС: $($this.eias_files_sum)"
         
         foreach ($i in 0..5) { $log.Add(-join($this.protocol_types[$i], $this.simple_files_types_sums[$i])) }
+
+        $log.Add("`n>>> Пропущенных: $($this.missing_protocols.Count)")
                 
         return $($log -join "`n")
     }
@@ -138,7 +157,7 @@ class BackupBlock {
         $data += "`nОтправленные сканы:`n`n$($t -join "`n")"
         $data += $this.out_missing_numbers()
         $data += $global:break_line
-        $data | Out-File -FilePath $(&$this.log_path -month $this.month)
+        $data | Out-File -FilePath $(&$this.log_path -month $this.time_span)
     }
 
     [void] get_log_info([string] $x) {
@@ -235,16 +254,17 @@ $drives_control = [DrivesControl]::new()
 function rc { return $drives_control.reconfig_path() }
 
 function backup_process {
-    $set_values = '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'
-    Write-Host "$($global:break_line)`n>> Выберите, за какой период нужно отправить сканы >>`n`n> Месяц > [$($set_values -join '; ')] <`n> За весь год > [full]`n"
+    $month_values = '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'
+    $year_value = 'full'
+    Write-Host "$($global:break_line)`n>> Выберите, за какой период нужно отправить сканы >>`n`n> Месяц > [$($month_values -join '; ')] <`n> За весь год > [$year_value]`n"
 
     do {
         $value = Read-Host "Ввод"
         
-        if ($set_values -contains $value) {
+        if ($month_values -contains $value) {
             $data_block = [BackupBlock]::new($value)
             
-            if ($data_block.all_sum -gt 0) {
+            if ($data_block.status -eq $true) {     
                 $data_block.out_block_log()
                 $data_block.out_missing_numbers()
                 $data_block.backuping()
@@ -252,35 +272,26 @@ function backup_process {
             }
             else { return }
         }
-        <#elseif ($value -ceq 'full') {
-            [int] $full_sum
-            [int] $eias_full_sum
-            [list[int]] $simple_full_sum = @()
-            [int] $full_missings
-                        
-            foreach ($i in $set_values) {
-                $data_block = [BackupBlock]::new($i)
+        elseif ($value -ceq $year_value) {
+            $full_block = [BackupBlock]::new('\d{2}')
+            $full_block.out_block_log()
+            $global:break_line
+            
+            foreach ($i in $month_values) {
+                $step_block = [BackupBlock]::new($i)
 
-                if ($data_block.all_sum -gt 0) {
-                    $data_block.backuping()
-                    $data_block.logging()
+                if ($step_block.status -eq $true) {
+                    $step_block.backuping()
+                    $step_block.logging()
                 }
-                
-                $full_sum += $data_block.all_sum
-                $eias_full_sum += $data_block.eias_files_sum
-                foreach ($j in 0..6) {$simple_full_sum[$j] += $data_block.simple_files_types_sums[$j]}
-                $full_missings += $data_block.missing_protocols.Count
-            }
-
-            Write-Host "`nГод: $($data_block.year)`nВсего сканов: $full_sum`n> ЕИАС: $eias_full_sum`n"
-
-        }#>
+            }  
+        }
         else { 
             Write-Host "`n* Неверное значение! * >> Попробуйте заново!`n" 
             continue
         }
 
-    } while ($set_values -notcontains $value) 
+    } while ($month_values -notcontains $value -and $value -cne $year_value) 
 }
 
 if ($drives_control.drive_setup_status.source -eq $true -and $drives_control.drive_setup_status.destination -eq $true) { backup_process }
