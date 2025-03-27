@@ -20,7 +20,12 @@ class BackupBlock {
     hidden [string] $time_span
     hidden [int] $all_sum
     hidden [int] $eias_files_sum
-    hidden [List[int]] $simple_files_types_sums       
+
+
+
+    hidden [List[int]] $simple_files_types_sums       # !!!!!!!
+    
+    
     hidden [List[string]] $missing_protocols
     hidden [bool] $status
         
@@ -51,8 +56,14 @@ class BackupBlock {
         if ($this.all_sum -ne 0) {
             
             
+
+
+
             foreach ($i in $this.protocol_type_patterns) {
+                
                 [List[int]] $n = $files_block[0] | Where-Object Name -Match "^(?<number>\d+)-$i-" | ForEach-Object { [int]$Matches.number } | Sort-Object
+                
+                                
                 $this.simple_files_types_sums += $n.Count
                 
                 if ($n.Count -gt 2) {
@@ -66,6 +77,12 @@ class BackupBlock {
                 }
                 else { continue }
             }
+
+
+
+
+
+
             foreach ($i in (0, 1)) { $this.files += $files_block[$i] }
             $this.files | Sort-Object
             $this.status = $true        
