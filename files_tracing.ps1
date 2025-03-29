@@ -18,14 +18,16 @@ class BackupBlock {
     hidden [List[psobject]] $files
     hidden [string] $year = (Get-Date -Format "yyyy")
     hidden [string] $time_span
-    hidden [int] $all_sum
-    hidden [int] $eias_files_sum
 
+    <# (Суммы сканов: result_sums)
+        
+    0. Ф-Ф Уссурийск, Рад. Уссурийск, Меб. Уссурийск; 
+    1. Ф-Ф Арсеньев, Рад. Арсеньев, Меб. Арсеньев;
+    2. Физ. факторы, Радиация, Мебель;
+    3. Все абсолютно, ЕИАС, Уссурийск, Арсеньев.
+    #>
 
-
-    hidden [List[int]] $simple_files_types_sums       # !!!!!!!
-    
-    
+    hidden [list[psobject]] $result_sums = @(@(0, 0, 0), @(0, 0, 0), @(0, 0, 0), @(0, 0, 0, 0))    
     hidden [List[string]] $missing_protocols
     hidden [bool] $status
         
@@ -33,10 +35,9 @@ class BackupBlock {
         '07' = "Июль"; '08' = "Август"; '09' = "Сентябрь"; '10' = "Октябрь"; '11' = "Ноябрь"; '12' = "Декабрь"}
 
     hidden [List[string]] $file_type_patterns = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-'
-    
-    [List[string]] $protocol_type_patterns = '[ф]', '[р]', '[м]', '[ф][а]', '[р][а]', '[м][а]'
-    hidden [List[string]] $protocol_types = '> Физ. факторы (Усс.): ', '> Рад. контроль (Усс.): ', '> Замеры мебели (Усс.): ', 
-        '> Физ. факторы (Арс.): ', '> Рад. контроль (Арс.): ', '> Замеры мебели (Арс.): '
+    hidden [List[psobject]] $protocol_types_patterns = (('[ф]', '[ф][а]'), ('[р]', '[р][а]'), ('[м]', '[м][а]'))
+    hidden [List[string]] $protocol_location = 'Уссурийск', 'Арсеньев'
+    hidden [List[string]] $protocol_types = 'Физические факторы', 'Радиационный контроль', 'Замеры мебели'
     
     hidden [scriptblock] $result_out = { Write-Host ("`nУспешно! Скопировано файлов за $($this.time_span) - $($this.all_sum)`n") }
     hidden [scriptblock] $log_path = { param($month) ".\logs\отчет_$month.txt" }
@@ -48,49 +49,45 @@ class BackupBlock {
         else { $this.time_span = -join($this.year, ' г.') }
                                                                          # обработка исключения
         [list[psobject]] $files_block = @(@(), @())
-        foreach ($i in (0, 1)) { $files_block[$i] = Get-ChildItem -Path source:\ -File | Where-Object Name -Match $($this.file_type_patterns[$i] + "\d{2}\.$month_value\.$($this.year)\.pdf$") }
+        foreach ($i in 0..1) { $files_block[$i] = Get-ChildItem -Path source:\ -File | Where-Object Name -Match $($this.file_type_patterns[$i] + "\d{2}\.$month_value\.$($this.year)\.pdf$") }
         
-        $this.eias_files_sum = $files_block[1].Count
-        $this.all_sum = $files_block[0].Count + $this.eias_files_sum
+        $this.result_sums[3][1] = $files_block[1].Count
+        $this.result_sums[3][0] = $files_block[0].Count + $files_block[1].Count
                 
         if ($this.all_sum -ne 0) {
-            
-            
+            foreach ($i in 0..2) {
+                foreach ($j in 0..1) {
+                    $pattern = $this.protocol_types_patterns[$i][$j]
 
+                    [List[int]] $numbers = $files_block[0] | Where-Object Name -Match "^(?<number>\d+)-$pattern-" | ForEach-Object { [int]$Matches.number } | Sort-Object
+                    $sum = $numbers.Count
 
+                    $this.result_sums[$j][$i] += $sum
 
-            foreach ($i in $this.protocol_type_patterns) {
-                
-                [List[int]] $n = $files_block[0] | Where-Object Name -Match "^(?<number>\d+)-$i-" | ForEach-Object { [int]$Matches.number } | Sort-Object
-                
-                                
-                $this.simple_files_types_sums += $n.Count
-                
-                if ($n.Count -gt 2) {
-                    [List[int]] $r = $n[0]..$n[-1]
-                    $n.GetEnumerator().ForEach({ $r.Remove($_) })
-                    
-                    if ($r.Count -gt 0) {
-                        $this.missing_protocols += $r | ForEach-Object { -join([string]$_, '-', $i.Replace('[', '')) } | ForEach-Object { $_.Replace(']', '') }
+                    if ($sum -gt 2) {
+                        [List[int]] $range = $numbers[0]..$numbers[-1]
+                        $numbers.ForEach({ $range.Remove($_) })   # !! test
+                        
+                        if ($range.Count -gt 0) {
+                            $this.missing_protocols += $range | ForEach-Object { -join([string]$_, '-', $pattern.Replace('[', '')) } | ForEach-Object { $_.Replace(']', '') }
+                        }
+                        else { continue }
                     }
                     else { continue }
                 }
-                else { continue }
+
+                $type_uss = $this.result_sums[0][$i]
+                $type_ars = $this.result_sums[1][$i]
+
+                $this.result_sums[2][$i] = $type_uss + $type_ars
+                $this.result_sums[3][2] += $type_uss
+                $this.result_sums[3][3] += $type_ars
             }
-
-
-
-
-
 
             foreach ($i in (0, 1)) { $this.files += $files_block[$i] }
             $this.files | Sort-Object
             $this.status = $true        
         }
-
-
-
-        
         else { 
             $this.status = $false
             Write-Host "`nЗа $($this.time_span) сканов протоколов не найдено!`n" 
@@ -159,11 +156,16 @@ class BackupBlock {
     }
 
     [List[string]] out_block_log() {
-        [List[string]] $log = "`nПериод: $($this.time_span)", "Всего сканов: $($this.all_sum)`n", "> ЕИАС: $($this.eias_files_sum)"
+        [List[string]] $log = "`nПериод: $($this.time_span)", "Всего сканов: $($this.result_sums[3][0])", "> ЕИАС: $($this.result_sums[3][1])", "> $($this.protocol_location[0]): $($this.result_sums[3][2])", "> $($this.protocol_location[1]): $($this.result_sums[3][3])`n"
         
-        foreach ($i in 0..5) { $log.Add(-join($this.protocol_types[$i], $this.simple_files_types_sums[$i])) }
+        foreach ($i in 0..2) {
+            [string] $location_sums = foreach ($j in 0..1) { "  * $($this.protocol_location[$j]): $($this.result_sums[$j][$i])`n" }
 
-        $log.Add("`n>>> Пропущенных: $($this.missing_protocols.Count)")
+            $log.Add("| $($this.protocol_types[$i]) - всего: $($this.result_sums[2][$i])")
+            $log.Add($location_sums)
+        }
+
+        $log.Add(">> Пропущенных: $($this.missing_protocols.Count)")
                 
         return $($log -join "`n")
     }
