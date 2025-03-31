@@ -10,8 +10,13 @@
 using namespace System.Collections.Generic
 
 
-$script:break_line = '- ' * 30
+$script:break_line = '- ' * 40
 $script:flow_separator = '> ' * 40
+
+[System.Collections.Hashtable] $script:data_month = @{'01' = "Январь"; '02' = "Февраль"; '03' = "Март"; '04' = "Апрель"; '05' = "Май"; '06' = "Июнь"; 
+        '07' = "Июль"; '08' = "Август"; '09' = "Сентябрь"; '10' = "Октябрь"; '11' = "Ноябрь"; '12' = "Декабрь"}
+
+[scriptblock] $script:log_path = { param($month) ".\logs\отчет_$month.txt" }
 
 
 class BackupBlock {
@@ -29,22 +34,19 @@ class BackupBlock {
     hidden [list[psobject]] $result_sums = @(@(0, 0, 0), @(0, 0, 0), @(0, 0, 0), @(0, 0, 0, 0))    
     hidden [List[string]] $missing_protocols
     hidden [bool] $status
-        
-    hidden [System.Collections.Hashtable] $data_month = @{'01' = "Январь"; '02' = "Февраль"; '03' = "Март"; '04' = "Апрель"; '05' = "Май"; '06' = "Июнь"; 
-        '07' = "Июль"; '08' = "Август"; '09' = "Сентябрь"; '10' = "Октябрь"; '11' = "Ноябрь"; '12' = "Декабрь"}
+                
     hidden [List[string]] $file_type_patterns = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-'
     hidden [List[psobject]] $protocol_type_patterns = (('[ф]', '[ф][а]'), ('[р]', '[р][а]'), ('[м]', '[м][а]'))
     hidden [List[string]] $protocol_location = 'Уссурийск', 'Арсеньев'
     hidden [List[string]] $protocol_types = 'Физические факторы', 'Радиационный контроль', 'Замеры мебели'
-    hidden [scriptblock] $result_out = { Write-Host ("`nУспешно! Скопировано файлов за $($this.time_span) - $($this.result_sums[3][0])`n") }
-    hidden [scriptblock] $log_path = { param($month) ".\logs\отчет_$month.txt" }
+    hidden [scriptblock] $result_out = { Write-Host ("$($script:break_line)`nУспешно! Скопировано файлов за $($this.time_span) - $($this.result_sums[3][0])`n") }
     hidden [scriptblock] $drop_backup = { Write-Host "`nРезервное копирование сброшено!`n$('*' * 31)`n" }
     hidden [scriptblock] $folder_create_error = { param($dir) Write-Host "`n* Ошибка! * >> Не удалось создать директорию '$dir'`n" }
     hidden [scriptblock] $copy_fix = { Read-Host "Подтвердить - (Y); Отмена - (N)" } 
     hidden [scriptblock] $entry_error = { Write-Host "`n* Неправильный символ! *`n" }
     
     BackupBlock([string] $month_value) {
-        if ($this.data_month.Keys -contains $month_value) { $this.time_span = $this.data_month.$month_value }
+        if ($script:data_month.Keys -contains $month_value) { $this.time_span = $script:data_month.$month_value }
         else { $this.time_span = -join($this.year, ' г.') }
                                                                          # обработка исключения
         [list[psobject]] $files_block = @(@(), @())
@@ -53,7 +55,7 @@ class BackupBlock {
         $this.result_sums[3][1] = $files_block[1].Count
         $this.result_sums[3][0] = $files_block[0].Count + $files_block[1].Count
                 
-        if ($this.all_sum -ne 0) {
+        if ($this.result_sums[3][0] -ne 0) {
             foreach ($i in 0..2) {
                 foreach ($j in 0..1) {
                     $pattern = $this.protocol_type_patterns[$i][$j]
@@ -117,7 +119,7 @@ class BackupBlock {
         }
         else {
             [List[string]] $d = $temp_block[0] | ForEach-Object { $_.Name.Replace('.pdf', '') } 
-            Write-Host "`nВнимание! Следующие файлы уже существуют в хранилище и будут перезаписаны.`n`n$($d -join "`n")`n"
+            Write-Host "$($script:flow_separator)`n`nВнимание! Следующие файлы уже существуют в хранилище и будут перезаписаны`n`n$($d -join "`n")`n"
             [string] $task = ''
 
             do {
@@ -142,12 +144,12 @@ class BackupBlock {
     }
            
     [List[string]] out_missing_numbers() {
-        if ($this.missing_protocols.Count -gt 0) { return "`n** Пропущенные сканы (номера протоколов):`n`n$($this.missing_protocols -join "`n")" }
-        else { return "`nПропущенных нет!" }
+        if ($this.missing_protocols.Count -gt 0) { return ">> Пропущенные сканы (номера протоколов):`n`n$($this.missing_protocols -join "`n")" }
+        else { return $null }
     }
 
     [List[string]] out_block_log() {
-        [List[string]] $log = "`nПериод: $($this.time_span)", "Всего сканов: $($this.result_sums[3][0])", "> ЕИАС: $($this.result_sums[3][1])", "> $($this.protocol_location[0]): $($this.result_sums[3][2])", "> $($this.protocol_location[1]): $($this.result_sums[3][3])`n"
+        [List[string]] $log = "`nПериод: $($this.time_span)", "Всего сканов: $($this.result_sums[3][0])", "> ЕИАС: $($this.result_sums[3][1])", "> $($this.protocol_location[0]): $($this.result_sums[3][2])", "> $($this.protocol_location[1]): $($this.result_sums[3][3])", "> Пропущенных: $($this.missing_protocols.Count)`n"
         
         foreach ($i in 0..2) {
             [string] $location_sums = foreach ($j in 0..1) { "  * $($this.protocol_location[$j]): $($this.result_sums[$j][$i])`n" }
@@ -155,22 +157,17 @@ class BackupBlock {
             $log.Add("| $($this.protocol_types[$i]) - всего: $($this.result_sums[2][$i])")
             $log.Add($location_sums)
         }
-        $log.Add(">> Пропущенных: $($this.missing_protocols.Count)")
-                
+                        
         return $($log -join "`n")
     }
 
     [void] logging() {
         $data = $this.out_block_log()
-        $t = $this.files | ForEach-Object { $_.name }
+        $t = $this.files | ForEach-Object { $_.name }   # format table
         $data += "`nОтправленные сканы:`n`n$($t -join "`n")"
         $data += $this.out_missing_numbers()
         $data += $script:break_line
-        $data | Out-File -FilePath $(&$this.log_path -month $this.time_span)
-    }
-
-    [void] get_log_info([string] $x) {
-        Get-Content -Path $(&$this.log_path -month $this.data_month.$x) | Write-Host
+        $data | Out-File -FilePath $(&$script:log_path -month $this.time_span)
     }
 }
    
@@ -212,7 +209,7 @@ class DrivesControl {
         [list[string]] $current_drives = Get-PSDrive -PSProvider FileSystem | ForEach-Object { $_.Name }
 
         do {
-            Write-Host "$($script:break_line)`n<тип директории> [тип: -s - исходный; -d - резервный]`n`n>> Пример: -s C:\Directory\Folder\Source files`n"
+            Write-Host "$($script:break_line)`n`nКонфигурация директории: <тип директории> [тип: -s - исходный; -d - резервный] <путь>`n`n>> Пример: -s C:\Directory\Folder\Source files`n"
             $x = Read-Host "Ввод"
             
             [list[string]] $parameters = @()
@@ -246,15 +243,15 @@ class DrivesControl {
 Write-Host @"
 
 $script:break_line
-    ** Резервное копирование сканов протоколов ** 
-$script:break_line     
-| Копирование за месяц > 'month <значение месяца>' (01; 02; 03; 04; 05; 06; 07; 08; 09; 10; 11; 12)
-| Копирование за год > 'year'
-| Поиск протокола по номеру > 'find <номер>' (123-A; 12345-01-02)
-| Получить отчет за месяц > 'report <значение месяца>' (01; 02; 03; 04; 05; 06; 07; 08; 09; 10; 11; 12)
-| Создание папок по месяцам > 'cmds' ([директория по умолчанию]) 
+  * * * * * * * *  Резервное копирование сканов протоколов  * * * * * * * * * 
+$script:break_line
 
-  Подробная справка: 'help'
+| Запуск копирования > 'bp'
+| Поиск протокола в резервном хранилище > 'fp'
+| Отобразить отчет за месяц > 'gl <значение месяца>'
+| Перенастроить рабочие пути > 'rc'
+
+  Подробная справка: 'hp'
 $script:flow_separator
 
 "@
@@ -264,18 +261,19 @@ function rc { return $drives_control.reconfig_path() }
 
 function backup_process {
     if ($drives_control.drive_setup_status.source -eq $true -and $drives_control.drive_setup_status.destination -eq $true) {
-        $month_values = '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'
+        $month_values = $script:data_month.Keys | Sort-Object
         $year_value = 'full'
-        [scriptblock] $accept_copy = { Write-Host "$($script:break_line)`n>> Подтвердите копирование в резервное хранилище!`n" }
-        Write-Host "$($script:break_line)`n>> Выберите, за какой период нужно отправить сканы >>`n`n> Месяц > [$($month_values -join '; ')] <`n> За весь год > [$year_value] <`n"
+        [scriptblock] $accept_copy = { Write-Host "$($script:break_line)`n`n* Подтвердите копирование в резервное хранилище!`n" }
+        Write-Host "$($script:break_line)`n`n>> Выберите, за какой период нужно отправить сканы >>`n`n> Месяц > [$($month_values -join '; ')] <`n> За весь год > [$year_value] <`n"
 
         do {
-            $value = Read-Host "Ввод"
+            $value = Read-Host "Ввод"      # global ??
             
             if ($month_values -contains $value) {
                 $data_block = [BackupBlock]::new($value)
                 
                 if ($data_block.status -eq $true) {     
+                    $script:flow_separator
                     $data_block.out_block_log()
                     $data_block.out_missing_numbers()
                     &$accept_copy
@@ -302,6 +300,7 @@ function backup_process {
             }
             elseif ($value -ceq $year_value) {
                 $full_block = [BackupBlock]::new('\d{2}')
+                $script:flow_separator
                 $full_block.out_block_log()
                 &$accept_copy
 
@@ -338,3 +337,53 @@ function backup_process {
     }
     else { exit }
 }
+
+function find_protocol {
+    [scriptblock] $err = { Write-Host "`n* Системная ошибка! *`n" }
+
+    Write-Host "$($script:break_line)`nПример: (123-A; 12345-01-02)`n"
+    $mask = Read-Host "Введите номер протокола"
+    $result = Get-ChildItem -Path destination:\ -File -Recurse | Where-Object Name -Like "$($mask)*.pdf"
+
+    if ($result.Count -gt 0) {
+        if ($? -eq $true) {
+            Write-Host "`n>> Найдено:"
+            $result | Format-Table -Property Name -HideTableHeaders
+
+            Write-Host "$($script:break_line)`nКопировать на рабочий стол ?`n"
+            $select = Read-Host "Да - 'Y'; Отмена - <любой символ>"
+
+            if ($select -eq 'Y') {
+                $result | Copy-Item -Destination {$home + '\Desktop'}
+                
+                if ($? -eq $true) { Write-Host "`nУспешно!`n" }
+                else { 
+                    &$err
+                    return 
+                }
+            }
+            else {
+                Write-Host ''
+                return 
+            }
+        }
+        else { 
+            &$err
+            return 
+        }
+    }
+    else { Write-Host "`n>> Ничего не найдено!`n" }
+}
+
+function get_log_info {
+    $script:break_line
+    $x = Read-Host "Введите значение месяца"
+    
+    if ($script:data_month.Keys -contains $x) {
+        $script:flow_separator
+        Get-Content -Path $(&$script:log_path -month $script:data_month.$x) | Write-Host 
+    }
+    else { Write-Host "Error" }
+}
+
+#function get_script_info { return Get-Help .\PDF_protocols_backup.ps1 }
