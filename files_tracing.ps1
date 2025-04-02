@@ -1,6 +1,6 @@
 # **************************************
 
-# Nebula Script. Backup-PDF Mod 2.0
+# Nebula Script. Backup-PDF Mod 2.0 (Ussuriysk location)
 # (c) Ivan Bogdanov. 2024-2025
 # My contacts: fluenoriph@gmail.com, fluenoriph@yandex.ru
 # Powered by Open Source 
@@ -209,7 +209,7 @@ class DrivesControl {
         [list[string]] $current_drives = Get-PSDrive -PSProvider FileSystem | ForEach-Object { $_.Name }
 
         do {
-            Write-Host "$($script:break_line)`n`nКонфигурация директории: <тип директории> [тип: -s - исходный; -d - резервный] <путь>`n`n>> Пример: -s C:\Directory\Folder\Source files`n"
+            Write-Host "$($script:break_line)`n`nКонфигурация директории: <тип директории> [тип: -s - исходный; -d - резервный] <путь>`n`n>> Пример: -s C:\Folder\Source files`n"
             $x = Read-Host "Ввод"
             
             [list[string]] $parameters = @()
@@ -240,6 +240,11 @@ class DrivesControl {
 }
 
 
+Set-Alias -Name bp -Value backup_process
+Set-Alias -Name fp -Value find_protocol
+Set-Alias -Name li -Value get_log_info
+Set-Alias -Name hp -Value get_script_info
+
 Write-Host @"
 
 $script:break_line
@@ -248,7 +253,7 @@ $script:break_line
 
 | Запуск копирования > 'bp'
 | Поиск протокола в резервном хранилище > 'fp'
-| Отобразить отчет за месяц > 'gl <значение месяца>'
+| Отобразить отчет за месяц > 'li'
 | Перенастроить рабочие пути > 'rc'
 
   Подробная справка: 'hp'
@@ -377,13 +382,48 @@ function find_protocol {
 
 function get_log_info {
     $script:break_line
-    $x = Read-Host "Введите значение месяца"
+    Write-Host "`n* Все файлы отчетов расположены в папке: '$(-join($current_script_path, '\logs'))'`n"
+    $x = Read-Host "Для текущего отображения введите значение месяца"
     
     if ($script:data_month.Keys -contains $x) {
         $script:flow_separator
-        Get-Content -Path $(&$script:log_path -month $script:data_month.$x) | Write-Host 
+        Get-Content -Path $(&$script:log_path -month $script:data_month.$x) | Write-Host  # error file not exist
     }
-    else { Write-Host "Error" }
+    else { return }
 }
 
-#function get_script_info { return Get-Help .\PDF_protocols_backup.ps1 }
+function get_script_info { return Get-Help .\files_tracing.ps1 -Full }
+
+
+<#
+.SYNOPSIS
+    Сценарий files_tracing.ps1
+
+    * Nebula Script. Backup-PDF Mod 2.0 (Уссурийск)
+    * (c) Иван Богданов. 2025 г. Все права защищены. 
+.DESCRIPTION
+    <bp>     Копировать за месяц. Параметры: [01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12]
+             Копировать за год: [full]
+
+    <fp>     Поиск скана протокола в резервной директории. Параметры: [пример - (123-A; 12345-01-02)]
+
+    <li>     Отобразить отчет из текстового файла. Параметры: [01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12]
+
+    <rc>     Настойка директорий. Параметры: [-s: исходная; -d: резервная] [путь]
+             Пример: -d X:\Folder\Files folder   
+.NOTES
+    Псевдонимы функций:
+    
+    backup_process >> bp
+    find_protocol >> fp
+    get_log_info >> gl
+    get_script_info >> hp
+    [DrivesControl].reconfig_path >> rc (reload method)
+
+    Правильные имена файлов сканов:
+        Протокол ЕИАС: 12345-01-02-31.01.2025
+        Обычный протокол: 1-а-31.01.2025
+    
+    Важно!!! Программа работает только с файлами 'PDF'. 
+    Именовать сканы строго по вышеприведенным маскам!
+ #>
