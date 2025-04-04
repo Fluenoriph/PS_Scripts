@@ -39,7 +39,8 @@ class BackupBlock {
     hidden [List[psobject]] $protocol_type_patterns = (('[ф]', '[ф][а]'), ('[р]', '[р][а]'), ('[м]', '[м][а]'))
     hidden [List[string]] $protocol_location = 'Уссурийск', 'Арсеньев'
     hidden [List[string]] $protocol_types = 'Физические факторы', 'Радиационный контроль', 'Замеры мебели'
-    hidden [scriptblock] $result_out = { Write-Host ("$($script:break_line)`nУспешно! Скопировано файлов за $($this.time_span) - $($this.result_sums[3][0])`n") }
+    
+    hidden [scriptblock] $result_out = { Write-Host ("$($script:break_line)`n`nУспешно! Скопировано файлов за $($this.time_span) - $($this.result_sums[3][0])`n") }
     hidden [scriptblock] $drop_backup = { Write-Host "`nРезервное копирование сброшено!`n$('*' * 31)`n" }
     hidden [scriptblock] $folder_create_error = { param($dir) Write-Host "`n* Ошибка! * >> Не удалось создать директорию '$dir'`n" }
     hidden [scriptblock] $copy_fix = { Read-Host "Подтвердить - (Y); Отмена - (N)" } 
@@ -48,7 +49,7 @@ class BackupBlock {
     BackupBlock([string] $month_value) {
         if ($script:data_month.Keys -contains $month_value) { $this.time_span = $script:data_month.$month_value }
         else { $this.time_span = -join($this.year, ' г.') }
-                                                                         # обработка исключения
+                                                                         
         [list[psobject]] $files_block = @(@(), @())
         foreach ($i in 0..1) { $files_block[$i] = Get-ChildItem -Path source:\ -File | Where-Object Name -Match $($this.file_type_patterns[$i] + "\d{2}\.$month_value\.$($this.year)\.pdf$") }
         
@@ -62,12 +63,11 @@ class BackupBlock {
 
                     [List[int]] $numbers = $files_block[0] | Where-Object Name -Match "^(?<number>\d+)-$pattern-" | ForEach-Object { [int]$Matches.number } | Sort-Object
                     $sum = $numbers.Count
-
                     $this.result_sums[$j][$i] += $sum
 
                     if ($sum -gt 2) {
                         [List[int]] $range = $numbers[0]..$numbers[-1]
-                        $numbers.ForEach({ $range.Remove($_) })   # !! test
+                        $numbers.ForEach({ $range.Remove($_) }) 
                         
                         if ($range.Count -gt 0) {
                             $this.missing_protocols += $range | ForEach-Object { -join([string]$_, '-', $pattern.Replace('[', '')) } | ForEach-Object { $_.Replace(']', '') }
@@ -112,7 +112,7 @@ class BackupBlock {
             if (Test-Path $(-join($backup_dir, '\', $i.Name))) { $temp_block[0] += $i }
             else { $temp_block[1] += $i }
         }
-                # try catch ???
+        
         if ($temp_block[0].Count -eq 0) { 
             $this.files | Copy-Item -Destination $backup_dir
             &$this.result_out
@@ -134,10 +134,7 @@ class BackupBlock {
                     &$this.drop_backup
                     return 
                 }
-                else { 
-                    &$this.entry_error
-                    continue
-                }
+                else { &$this.entry_error }
 
             } while ($task -ne 'Y' -and $task -ne 'N')
         }   
@@ -149,24 +146,24 @@ class BackupBlock {
     }
 
     [List[string]] out_block_log() {
-        [List[string]] $log = "`nПериод: $($this.time_span)", "Всего сканов: $($this.result_sums[3][0])", "> ЕИАС: $($this.result_sums[3][1])", "> $($this.protocol_location[0]): $($this.result_sums[3][2])", "> $($this.protocol_location[1]): $($this.result_sums[3][3])", "> Пропущенных: $($this.missing_protocols.Count)`n"
+        [List[string]] $log = "`nПериод: $($this.time_span)", "Всего сканов: $($this.result_sums[3][0])", "> ЕИАС: $($this.result_sums[3][1])", 
+            "> $($this.protocol_location[0]): $($this.result_sums[3][2])", "> $($this.protocol_location[1]): $($this.result_sums[3][3])", "> Пропущенных: $($this.missing_protocols.Count)`n"
         
         foreach ($i in 0..2) {
             [string] $location_sums = foreach ($j in 0..1) { "  * $($this.protocol_location[$j]): $($this.result_sums[$j][$i])`n" }
 
             $log.Add("| $($this.protocol_types[$i]) - всего: $($this.result_sums[2][$i])")
             $log.Add($location_sums)
-        }
-                        
+        }        
         return $($log -join "`n")
     }
 
     [void] logging() {
         $data = $this.out_block_log()
-        $t = $this.files | ForEach-Object { $_.name }   # format table
-        $data += "`nОтправленные сканы:`n`n$($t -join "`n")"
-        $data += $this.out_missing_numbers()
-        $data += $script:break_line
+        $t = $this.files | ForEach-Object { $_.name }   
+        $data.Add("`nОтправленные сканы:`n`n$($t -join "`n")")
+        $data.Add($this.out_missing_numbers())
+        $data.Add($script:break_line)
         $data | Out-File -FilePath $(&$script:log_path -month $this.time_span)
     }
 }
@@ -176,18 +173,18 @@ class DrivesControl {
     hidden [string] $config = '.\config_pathes.ini'   
     hidden [list[psobject]] $pathes
 
-    hidden [System.Collections.Hashtable] $drives = @{'-s' = 'source'; '-d' = 'destination'}
-    hidden [System.Collections.Hashtable] $drive_setup_status = @{'source' = $false; 'destination' = $false}    #test !!!
+    hidden [List[string]] $drive_types = 'source', 'destination'
+    hidden [System.Collections.Hashtable] $drives = @{'-s' = $this.drive_types[0]; '-d' = $this.drive_types[1]}
+    hidden [System.Collections.Hashtable] $drive_setup_status = @{$this.drive_types[0] = $false; $this.drive_types[1] = $false}    
 
     hidden [scriptblock] $bad_path_message = { param($dir_type_out, $path) "$dir_type_out'$path' не существует или неверное имя! >> Установите верный путь!`n" }
-    hidden [scriptblock] $write_directory_type = { param($type) if ($type -eq 'source') { "Исходная директория: " } else { "Директория резервного копирования: " } }
+    hidden [scriptblock] $write_directory_type = { param($type) if ($type -eq $this.drive_types[0]) { "Исходная директория: " } else { "Директория резервного копирования: " } }
     
     DrivesControl() {
         if (Test-Path -Path $this.config) {
             $this.pathes = Get-Content -Path $this.config -Encoding utf8 | ConvertFrom-StringData  
             
-            foreach ($k in $this.drives.Keys | Sort-Object -Descending) {
-                $disk = $this.drives.$k
+            foreach ($disk in $this.drive_types) {
                 $path = $this.pathes.$disk
                 $type_out = &$this.write_directory_type -type $disk
                 
@@ -232,7 +229,7 @@ class DrivesControl {
             }
             else {
                 $err = $false
-                Write-Host "`n* Введен неверный тип директории! * >> Вводите заново!`n"
+                Write-Host "`n* Введен неверный тип директории! * >> Введите заново!`n"
             }
             
         } while ($err -eq $false)
@@ -262,6 +259,7 @@ $script:flow_separator
 "@
 
 $drives_control = [DrivesControl]::new()
+Write-Host $(-join(('* ' * 40), "`n"))
 function rc { return $drives_control.reconfig_path() }
 
 function backup_process {
@@ -272,7 +270,7 @@ function backup_process {
         Write-Host "$($script:break_line)`n`n>> Выберите, за какой период нужно отправить сканы >>`n`n> Месяц > [$($month_values -join '; ')] <`n> За весь год > [$year_value] <`n"
 
         do {
-            $value = Read-Host "Ввод"      # global ??
+            $value = Read-Host "Ввод"      
             
             if ($month_values -contains $value) {
                 $data_block = [BackupBlock]::new($value)
