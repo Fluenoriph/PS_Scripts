@@ -91,7 +91,7 @@ class BackupBlock {
         }
         else { 
             $this.status = $false
-            Write-Host "`nЗа $($this.time_span) сканов протоколов не найдено!`n" 
+            Write-Host "$($script:break_line)`n`nЗа $($this.time_span) сканов протоколов не найдено!`n" 
         }
     }
     
@@ -141,7 +141,7 @@ class BackupBlock {
     }
            
     [List[string]] out_missing_numbers() {
-        if ($this.missing_protocols.Count -gt 0) { return ">> Пропущенные сканы (номера протоколов):`n`n$($this.missing_protocols -join "`n")" }
+        if ($this.missing_protocols.Count -gt 0) { return "`n>> Пропущенные сканы (номера протоколов):`n`n$($this.missing_protocols -join "`n")" }
         else { return $null }
     }
 
@@ -161,7 +161,7 @@ class BackupBlock {
     [void] logging() {
         $data = $this.out_block_log()
         $t = $this.files | ForEach-Object { $_.name }   
-        $data.Add("`nОтправленные сканы:`n`n$($t -join "`n")")
+        $data.Add("Отправленные сканы:`n`n$($t -join "`n")")
         $data.Add($this.out_missing_numbers())
         $data.Add($script:break_line)
         $data | Out-File -FilePath $(&$script:log_path -month $this.time_span)
@@ -249,8 +249,8 @@ $script:break_line
 $script:break_line
 
 | Запуск копирования > 'bp'
-| Поиск протокола в резервном хранилище > 'fp'
 | Отобразить отчет за месяц > 'li'
+| Поиск протокола в резервном хранилище > 'fp'
 | Перенастроить рабочие пути > 'rc'
 
   Подробная справка: 'hp'
@@ -263,11 +263,13 @@ Write-Host $(-join(('* ' * 40), "`n"))
 function rc { return $drives_control.reconfig_path() }
 
 function backup_process {
+    $month_values = $script:data_month.Keys | Sort-Object
+    [scriptblock] $month_out = { param($sep) "$($month_values -join $sep)" }
+    $year_value = 'full'
+    [scriptblock] $accept_copy = { Write-Host "$($script:break_line)`n`n* Подтвердите копирование в резервное хранилище!`n" }
+
     if ($drives_control.drive_setup_status.source -eq $true -and $drives_control.drive_setup_status.destination -eq $true) {
-        $month_values = $script:data_month.Keys | Sort-Object
-        $year_value = 'full'
-        [scriptblock] $accept_copy = { Write-Host "$($script:break_line)`n`n* Подтвердите копирование в резервное хранилище!`n" }
-        Write-Host "$($script:break_line)`n`n>> Выберите, за какой период нужно отправить сканы >>`n`n> Месяц > [$($month_values -join '; ')] <`n> За весь год > [$year_value] <`n"
+        Write-Host "$($script:break_line)`n`n>> Выберите, за какой период нужно отправить сканы >>`n`n> Месяц > [$(&$month_out -sep '; ')] <`n> За весь год > [$year_value] <`n"
 
         do {
             $value = Read-Host "Ввод"      
@@ -302,7 +304,7 @@ function backup_process {
                 else { return }
             }
             elseif ($value -ceq $year_value) {
-                $full_block = [BackupBlock]::new('\d{2}')
+                $full_block = [BackupBlock]::new("($(&$month_out -sep '|'))")
                 $script:flow_separator
                 $full_block.out_block_log()
                 &$accept_copy
