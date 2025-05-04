@@ -39,7 +39,7 @@ class BackupBlock {
     hidden [List[psobject]] $protocol_type_patterns = (('[ф]', '[ф][а]'), ('[р]', '[р][а]'), ('[м]', '[м][а]'))
     hidden [List[string]] $protocol_location = 'Уссурийск', 'Арсеньев'
     hidden [List[string]] $protocol_types = 'Физические факторы', 'Радиационный контроль', 'Замеры мебели'
-    
+
     hidden [scriptblock] $result_out = { Write-Host ("$($script:break_line)`n`nУспешно! Скопировано файлов за $($this.time_span) - $($this.result_sums[3][0])`n") }
     hidden [scriptblock] $drop_backup = { Write-Host "`nРезервное копирование сброшено!`n$('*' * 31)`n" }
     hidden [scriptblock] $folder_create_error = { param($dir) Write-Host "`n* Ошибка! * >> Не удалось создать директорию '$dir'`n" }
