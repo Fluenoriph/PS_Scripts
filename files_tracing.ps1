@@ -35,8 +35,8 @@ class BackupBlock {
     hidden [List[string]] $missing_protocols
     hidden [bool] $status
                 
-    hidden [List[string]] $file_type_patterns = '^\d{1,4}-\p{IsCyrillic}{1,2}-', '^\d{5}-\d{2}-\d{2}-'
-    hidden [List[psobject]] $protocol_type_patterns = (('[ф]', '[ф][а]'), ('[р]', '[р][а]'), ('[м]', '[м][а]'))
+    hidden [List[string]] $file_type_patterns = '^\d{1,4}-(ф|фа|р|ра|м|ма)-', '^\d{5}-\d{2}-\d{2}-'
+    hidden [List[psobject]] $protocol_type_patterns = (('[ф]', '[ф][а]'), ('[р]', '[р][а]'), ('[м]', '[м][а]'))   
     hidden [List[string]] $protocol_location = 'Уссурийск', 'Арсеньев'
     hidden [List[string]] $protocol_types = 'Физические факторы', 'Радиационный контроль', 'Замеры мебели'
 
@@ -52,11 +52,11 @@ class BackupBlock {
                                                                          
         [list[psobject]] $files_block = @(@(), @())
         foreach ($i in 0..1) { $files_block[$i] = Get-ChildItem -Path source:\ -File | Where-Object Name -Match $($this.file_type_patterns[$i] + "\d{2}\.$month_value\.$($this.year)\.pdf$") }
-        
-        $this.result_sums[3][1] = $files_block[1].Count
-        $this.result_sums[3][0] = $files_block[0].Count + $files_block[1].Count
                 
-        if ($this.result_sums[3][0] -ne 0) {
+        $this.result_sums[3][1] = $files_block[1].Count                              # eias sum
+        $this.result_sums[3][0] = $files_block[0].Count + $files_block[1].Count      # all sum
+                
+        if ($files_block[0].Count -ne 0) {
             foreach ($i in 0..2) {
                 foreach ($j in 0..1) {
                     $pattern = $this.protocol_type_patterns[$i][$j]
@@ -67,7 +67,7 @@ class BackupBlock {
 
                     if ($sum -gt 2) {
                         [List[int]] $range = $numbers[0]..$numbers[-1]
-                        $numbers.ForEach({ $range.Remove($_) }) 
+                        $numbers | ForEach-Object { $range.Remove($_) }
                         
                         if ($range.Count -gt 0) {
                             $this.missing_protocols += $range | ForEach-Object { -join([string]$_, '-', $pattern.Replace('[', '')) } | ForEach-Object { $_.Replace(']', '') }
