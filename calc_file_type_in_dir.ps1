@@ -16,14 +16,14 @@ if ($calc_file_sums.is_correct)
 
     foreach ($item in $calc_file_sums.result_file_sum.GetEnumerator())
     {
-        Write-Host "$($side_border) $($item.Key) - $($item.Value)"
+        Write-Host "$($side_border) '$($item.Key)' - $($item.Value)"
     }
 
     Write-Host "$($top_border)`n| Всего файлов: $($calc_file_sums.all_files_sum)`n"
 }
 else 
 {
-    Write-Host "`n* Ошибка скрипта ! Перезапустите заново !"
+    Write-Host "`n* Ошибка скрипта ! Перезапустите заново !`n"
     return
 }
 
@@ -40,12 +40,13 @@ class FileTypeSum
     {
         $this.directory = $target_directory
 
-        $file_list = Get-ChildItem -Path $this.directory -File -Recurse -Force | ForEach-Object {$_.Extension.Replace('.', '').ToUpper()}
+        $file_list = Get-ChildItem -Path $this.directory -Recurse -Force -File | ForEach-Object {$_.Extension.Replace('.', '').ToUpper()}
         $this.all_files_sum = $file_list.Count
-        $this.file_types_list = $file_list | Sort-Object
+        
+        $this.file_types_list = $file_list | Sort-Object # Здесь ли сортировать ? Или результат ?
         
         $this.CalculateEachFileType()
-        
+                
         $test_sum = 0
 
         foreach ($item_value in $this.result_file_sum.Values)
@@ -62,6 +63,10 @@ class FileTypeSum
             $this.is_correct = $false
         }
     }  
+
+    <# Нужно протестить время выполнения алгоритма расчета каждого типа.
+        Есть несколько вариантов выполнения.
+    #>
 
     [void] CalculateEachFileType()
     {
