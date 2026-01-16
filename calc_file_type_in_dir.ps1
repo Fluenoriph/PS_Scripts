@@ -21,7 +21,7 @@ if ($calc_file_sums.is_correct)
 
     foreach ($item in $calc_file_sums.result_file_sum.GetEnumerator())
     {        
-        Write-Host "$($side_border) [$($link)]: $($item.Key) - $($item.Value)"
+        Write-Host "$($side_border) $($link): $($item.Key) - [ $($item.Value) ]"
 
         $file_type_link.Add($link, $item.Key)
         $link++
