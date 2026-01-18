@@ -10,31 +10,34 @@ $top_border = "--------------------------------------------------"
 
 $target_dir = Read-Host "`n>>> Введите требуемую директорию"
 
-$calc_file_sums = [FileTypeSum]::new($target_dir)
+$calculated_file_sums = [FileTypeSum]::new($target_dir)
 
 if ($calc_file_sums.is_correct)
 {
-    Write-Host "`n> Директория - $($calc_file_sums.directory) содержит следующие файлы:`n$($top_border)"
+    Write-Host "`n> Директория - $($calculated_file_sums.directory) содержит следующие файлы:`n$($top_border)"
 
-    [Dictionary[int, string]] $file_type_link = @{}
-    $link = 1
+    [Dictionary[int, string]] $file_type_link_dict = @{}
+    $file_type_link_number = 1
 
-    foreach ($item in $calc_file_sums.result_file_sum.GetEnumerator())
+    foreach ($item in $calculated_file_sums.result_file_sum.GetEnumerator())
     {        
-        Write-Host "$($side_border) $($link): $($item.Key) - [ $($item.Value) ]"
+        Write-Host "$($side_border) $($file_type_link_number): $($item.Key) - [ $($item.Value) ]"
 
-        $file_type_link.Add($link, $item.Key)
-        $link++
+        $file_type_link_dict.Add($link, $item.Key)
+        $file_type_link_number++
     }
 
-    Write-Host "$($top_border)`n| Всего файлов: $($calc_file_sums.all_files_sum)`n"
+    Write-Host "$($top_border)`n| Всего файлов: $($calculated_file_sums.all_files_sum)`n"
 
     $link_value = Read-Host "> Для вывода файлов введите номер типа и нажмите 'Enter', для отмены введите любой символ"
 
-    if ($file_type_link.ContainsKey($link_value))
+    if ($file_type_link_dict.ContainsKey($link_value))
     {
-        $out_files = $calc_file_sums.GetFilesCurrentType($file_type_link[$link_value])
+        $out_files = $calculated_file_sums.GetFilesCurrentType($file_type_link_dict[$link_value])
         Write-Host $top_border
+
+        # new class menu works !!!
+        # open file to link number >>
 
         foreach ($file in $out_files)
         {
