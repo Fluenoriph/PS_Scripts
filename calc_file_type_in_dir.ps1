@@ -21,7 +21,7 @@ if ($calculated_file_sums.is_correct)
 
     foreach ($item in $calculated_file_sums.result_file_sum.GetEnumerator())
     {        
-        Write-Host "$($side_border) $($file_type_link_number): $($item.Key) - [ $($item.Value) ]"
+        Write-Host "$($side_border) $($file_type_link_number) $($side_border) $($item.Key) - [ $($item.Value) ]"
 
         $file_type_link_dict.Add($file_type_link_number, $item.Key)
         $file_type_link_number++
@@ -29,21 +29,36 @@ if ($calculated_file_sums.is_correct)
 
     Write-Host "$($top_border)`n| Всего файлов: $($calculated_file_sums.all_files_sum)`n"
 
-    $link_value = Read-Host "> Для вывода файлов введите номер типа и нажмите 'Enter', для отмены введите любой символ"
+    $file_type_link_value = Read-Host "> Для вывода файлов введите номер типа и нажмите 'Enter', для отмены введите любой символ"
 
-    if ($file_type_link_dict.ContainsKey($link_value))
+    if ($file_type_link_dict.ContainsKey($file_type_link_value))
     {
-        $out_files = $calculated_file_sums.GetFilesCurrentType($file_type_link_dict[$link_value])
+        $out_files = $calculated_file_sums.GetFilesCurrentType($file_type_link_dict[$file_type_link_value])
         Write-Host $top_border
 
-        # new class menu works !!!
-        # open file to link number >>
+        [Dictionary[int, string]] $each_file_link_dict = @{}
+        $each_file_link_number = 1
 
         foreach ($file in $out_files)
         {
-            Write-Host $file
+            Write-Host "> $($each_file_link_number) < $($file)"
+
+            $each_file_link_dict.Add($each_file_link_number, $file)
+            $each_file_link_number++
         }
+
         Write-Host $top_border
+
+        $file_link_value = Read-Host "`n> Чтобы открыть файл, введите номер-ссылку и нажмите 'Enter', для отмены введите любой символ"
+
+        if ($each_file_link_dict.ContainsKey($file_link_value))
+        {
+            Invoke-Item -Path $each_file_link_dict[$file_link_value]
+        }
+        else 
+        {
+            return
+        }
     }
     else
     {

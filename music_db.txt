@@ -1,0 +1,54 @@
+BEGIN;
+
+CREATE TABLE file_type (
+file_type_id SERIAL PRIMARY KEY,
+file_type_name TEXT NOT NULL UNIQUE
+);
+
+INSERT INTO file_type (file_type_name) VALUES 
+('APE'),
+('FLAC'),
+('M4A'),
+('MP3'),
+('MPC'),
+('WAV');
+
+CREATE TABLE registration_time (
+reg_time_id SERIAL PRIMARY KEY,
+reg_time_value TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE file_data (
+file_data_id SERIAL PRIMARY KEY,
+file_location TEXT,
+file_name TEXT NOT NULL,
+file_type_id INTEGER NOT NULL,
+reg_time_id INTEGER NOT NULL,
+FOREIGN KEY (file_type_id) REFERENCES file_type (file_type_id) ON DELETE CASCADE ON UPDATE CASCADE,
+FOREIGN KEY (reg_time_id) REFERENCES registration_time (reg_time_id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE audio_metadata (
+metadata_id SERIAL PRIMARY KEY,
+artist TEXT,
+title TEXT,
+album TEXT,
+genre TEXT,
+year INTEGER,
+file_data_id INTEGER NOT NULL,
+FOREIGN KEY (file_data_id) REFERENCES file_data (file_data_id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE audio_stream_data (
+stream_data_id SERIAL PRIMARY KEY,
+decoder TEXT NOT NULL,
+bitrate_kbps INTEGER,
+sample_rate_khz INTEGER,
+length_min REAL,
+bits_per_sample_bit INTEGER,
+channels TEXT,
+file_data_id INTEGER NOT NULL,
+FOREIGN KEY (file_data_id) REFERENCES file_data (file_data_id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+COMMIT;
