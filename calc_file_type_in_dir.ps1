@@ -11,19 +11,14 @@ $top_border = "--------------------------------------------------"
 $target_dir = Read-Host "`n>>> Введите требуемую директорию"
 
 $calculated_file_sums = [FileTypeSum]::new($target_dir)
-$calculated_file_sums = [FileTypeSum]::new($target_dir)
 
 if ($calculated_file_sums.is_correct)
 {
     Write-Host "`n> Директория - $($calculated_file_sums.directory) содержит следующие файлы:`n$($top_border)"
-    Write-Host "`n> Директория - $($calculated_file_sums.directory) содержит следующие файлы:`n$($top_border)"
 
     [Dictionary[int, string]] $file_type_link_dict = @{}
     $file_type_link_number = 1
-    [Dictionary[int, string]] $file_type_link_dict = @{}
-    $file_type_link_number = 1
-
-    foreach ($item in $calculated_file_sums.result_file_sum.GetEnumerator())
+    
     foreach ($item in $calculated_file_sums.result_file_sum.GetEnumerator())
     {        
         Write-Host "$($side_border) $($file_type_link_number) $($side_border) $($item.Key) - [ $($item.Value) ]"
@@ -33,8 +28,7 @@ if ($calculated_file_sums.is_correct)
     }
 
     Write-Host "$($top_border)`n| Всего файлов: $($calculated_file_sums.all_files_sum)`n"
-    Write-Host "$($top_border)`n| Всего файлов: $($calculated_file_sums.all_files_sum)`n"
-
+    
     $file_type_link_value = Read-Host "> Для вывода файлов введите номер типа и нажмите 'Enter', для отмены введите любой символ"
 
     if ($file_type_link_dict.ContainsKey($file_type_link_value))
