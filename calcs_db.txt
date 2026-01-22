@@ -9,7 +9,7 @@ reg_time_value TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 calc_type_id INTEGER NOT NULL,
 FOREIGN KEY (calc_type_id) REFERENCES calculator_type (calc_type_id) ON DELETE CASCADE
 );
-
+-- Разделить таблицы. Параметры и результаты отдельно.
 CREATE TABLE Formula_Type_Calculator_Data (
 data_id SERIAL PRIMARY KEY,
 parameter REAL[],

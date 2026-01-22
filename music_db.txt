@@ -22,6 +22,7 @@ CREATE TABLE file_data (
 file_data_id SERIAL PRIMARY KEY,
 file_location TEXT,
 file_name TEXT NOT NULL,
+file_size_mb REAL NOT NULL,
 file_type_id INTEGER NOT NULL,
 reg_time_id INTEGER NOT NULL,
 FOREIGN KEY (file_type_id) REFERENCES file_type (file_type_id) ON DELETE CASCADE ON UPDATE CASCADE,
