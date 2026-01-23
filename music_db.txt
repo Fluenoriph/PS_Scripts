@@ -23,6 +23,7 @@ file_data_id SERIAL PRIMARY KEY,
 file_location TEXT,
 file_name TEXT NOT NULL,
 file_size_mb REAL NOT NULL,
+file_hash TEXT UNIQUE,
 file_type_id INTEGER NOT NULL,
 reg_time_id INTEGER NOT NULL,
 FOREIGN KEY (file_type_id) REFERENCES file_type (file_type_id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -35,14 +36,14 @@ artist TEXT,
 title TEXT,
 album TEXT,
 genre TEXT,
-year INTEGER,
+year TEXT,
 file_data_id INTEGER NOT NULL,
 FOREIGN KEY (file_data_id) REFERENCES file_data (file_data_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE audio_stream_data (
 stream_data_id SERIAL PRIMARY KEY,
-decoder TEXT NOT NULL,
+codec TEXT NOT NULL,
 bitrate_kbps INTEGER,
 sample_rate_khz INTEGER,
 length_min REAL,
@@ -53,3 +54,16 @@ FOREIGN KEY (file_data_id) REFERENCES file_data (file_data_id) ON DELETE CASCADE
 );
 
 COMMIT;
+
+-- DROP ID COUNTS AND ALL
+
+BEGIN;
+
+DELETE FROM registration_time;
+ALTER SEQUENCE registration_time_reg_time_id_seq RESTART WITH 1;
+ALTER SEQUENCE file_data_file_data_id_seq RESTART WITH 1;
+ALTER SEQUENCE audio_metadata_metadata_id_seq RESTART WITH 1;
+ALTER SEQUENCE audio_stream_data_stream_data_id_seq RESTART WITH 1;
+
+COMMIT;
+
