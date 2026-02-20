@@ -33,6 +33,12 @@ if ($calculated_file_sums.is_correct)
 
     if ($file_type_link_dict.ContainsKey($file_type_link_value))
     {
+
+
+
+
+
+        
         $out_files = $calculated_file_sums.GetFilesCurrentType($file_type_link_dict[$file_type_link_value])
         Write-Host $top_border
 
@@ -105,10 +111,6 @@ class FileTypeSum
             $this.is_correct = $false
         }
     }  
-
-    <# Нужно протестить время выполнения алгоритма расчета каждого типа.
-        Есть несколько вариантов выполнения.
-    #>
 
     [void] ComputeEachFileTypeSum()
     {

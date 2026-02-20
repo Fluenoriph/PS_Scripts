@@ -23,7 +23,7 @@ file_data_id SERIAL PRIMARY KEY,
 file_location TEXT,
 file_name TEXT NOT NULL,
 file_size_mb REAL NOT NULL,
-file_hash TEXT UNIQUE,
+file_hash TEXT NOT NULL,
 file_type_id INTEGER NOT NULL,
 reg_time_id INTEGER NOT NULL,
 FOREIGN KEY (file_type_id) REFERENCES file_type (file_type_id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -67,3 +67,15 @@ ALTER SEQUENCE audio_stream_data_stream_data_id_seq RESTART WITH 1;
 
 COMMIT;
 
+-- Find duplicates
+
+SELECT file_location, file_name, file_size_mb FROM file_data WHERE file_hash IN (SELECT file_hash FROM file_data GROUP BY file_hash HAVING COUNT(*) > 1) ORDER BY file_size_mb; -- not index: 4,499 ms
+
+-- Duplicate sum
+
+SELECT (SELECT COUNT(file_hash) FROM file_data) - (SELECT COUNT(DISTINCT file_hash) FROM file_data);
+
+-- SELECT to album name
+
+SELECT f.file_name, f.file_size_mb, t.file_type_name, f.file_hash FROM file_data f JOIN file_type t ON f.file_type_id = t.file_type_id
+JOIN audio_metadata a ON f.file_data_id = a.file_data_id WHERE a.album = 'album name';
