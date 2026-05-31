@@ -10,7 +10,7 @@ INSERT INTO file_type (file_type_name) VALUES
 ('FLAC'),
 ('M4A'),
 ('MP3'),
-('MPC'),
+('MUSEPACK'),
 ('WAV');
 
 CREATE TABLE registration_time (
