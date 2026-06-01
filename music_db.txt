@@ -1,5 +1,12 @@
 BEGIN;
 
+CREATE TABLE users (
+user_id SERIAL PRIMARY KEY,
+email TEXT NOT NULL UNIQUE,
+password_hash TEXT NOT NULL,
+created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE file_type (
 file_type_id SERIAL PRIMARY KEY,
 file_type_name TEXT NOT NULL UNIQUE
@@ -24,21 +31,23 @@ file_data_id SERIAL PRIMARY KEY,
 file_location TEXT,
 file_name TEXT NOT NULL,
 file_size_bytes BIGINT NOT NULL,
-file_hash TEXT NOT NULL UNIQUE,
+file_hash VARCHAR(64) NOT NULL UNIQUE,
 file_type_id INTEGER NOT NULL,
-batch_id INTEGER NOT NULL,
+created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+batch_id INTEGER DEFAULT NULL, -- Если добавляем один файл, то он не относится к пакету.
 FOREIGN KEY (file_type_id) REFERENCES file_type (file_type_id) ON DELETE RESTRICT ON UPDATE CASCADE,
 FOREIGN KEY (batch_id) REFERENCES import_batch (batch_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE audio_metadata (
 metadata_id SERIAL PRIMARY KEY,
+updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 artist TEXT,
 title TEXT,
 album TEXT,
 genre TEXT,
 year SMALLINT,
-file_data_id INTEGER NOT NULL,
+file_data_id INTEGER NOT NULL UNIQUE,
 FOREIGN KEY (file_data_id) REFERENCES file_data (file_data_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -50,17 +59,46 @@ sample_rate_khz INTEGER,
 duration_seconds INTEGER,
 bits_per_sample_bit INTEGER,
 channels TEXT,
-file_data_id INTEGER NOT NULL,
+file_data_id INTEGER NOT NULL UNIQUE,
 FOREIGN KEY (file_data_id) REFERENCES file_data (file_data_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX idx_file_hash ON file_data(file_hash);
+CREATE TABLE user_likes (
+user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+file_data_id INTEGER REFERENCES file_data(file_data_id) ON DELETE CASCADE,
+PRIMARY KEY (user_id, file_data_id)
+);
+
+CREATE TABLE playlists (
+playlist_id SERIAL PRIMARY KEY,
+user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+name TEXT NOT NULL,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE playlist_files (
+playlist_id INTEGER REFERENCES playlists(playlist_id) ON DELETE CASCADE,
+file_data_id INTEGER REFERENCES file_data(file_data_id) ON DELETE CASCADE,
+PRIMARY KEY (playlist_id, file_data_id)
+);
+
+CREATE TABLE listening_history (
+listen_id SERIAL PRIMARY KEY,
+user_id INTEGER REFERENCES users(user_id) ON DELETE SET NULL,
+file_data_id INTEGER REFERENCES file_data(file_data_id) ON DELETE CASCADE,
+listened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX idx_artist ON audio_metadata(artist);
 CREATE INDEX idx_title ON audio_metadata(title);
 CREATE INDEX idx_genre ON audio_metadata(genre);
 CREATE INDEX idx_year ON audio_metadata(year);
+CREATE INDEX idx_listening_history ON listening_history(file_data_id);
+CREATE INDEX idx_listening_user_time ON listening_history(user_id, listened_at DESC);
 
 COMMIT;
+
+
 
 -- DROP ID COUNTS AND ALL
 
