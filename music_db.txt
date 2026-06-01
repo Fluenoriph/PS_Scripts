@@ -27,7 +27,7 @@ file_size_bytes BIGINT NOT NULL,
 file_hash TEXT NOT NULL UNIQUE,
 file_type_id INTEGER NOT NULL,
 batch_id INTEGER NOT NULL,
-FOREIGN KEY (file_type_id) REFERENCES file_type (file_type_id) ON DELETE CASCADE ON UPDATE CASCADE,
+FOREIGN KEY (file_type_id) REFERENCES file_type (file_type_id) ON DELETE RESTRICT ON UPDATE CASCADE,
 FOREIGN KEY (batch_id) REFERENCES import_batch (batch_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
