@@ -6,7 +6,7 @@ file_type_name TEXT NOT NULL UNIQUE
 );
 
 INSERT INTO file_type (file_type_name) VALUES 
-('APE'),
+('MONKEY'S_AUDIO'),
 ('FLAC'),
 ('M4A'),
 ('MP3'),
