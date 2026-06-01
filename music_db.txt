@@ -47,7 +47,7 @@ stream_data_id SERIAL PRIMARY KEY,
 codec TEXT NOT NULL,
 bitrate_kbps INTEGER,
 sample_rate_khz INTEGER,
-duration_seconds REAL, -- Тип REAL, так как mutagen выдает не целые значения.
+duration_seconds INTEGER,
 bits_per_sample_bit INTEGER,
 channels TEXT,
 file_data_id INTEGER NOT NULL,
