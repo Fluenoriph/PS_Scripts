@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE TABLE users (
 user_id SERIAL PRIMARY KEY,
-email TEXT NOT NULL UNIQUE,
+email VARCHAR(255) NOT NULL UNIQUE, -- изменить на 255
 password_hash TEXT NOT NULL,
 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -13,7 +13,7 @@ file_type_name TEXT NOT NULL UNIQUE
 );
 
 INSERT INTO file_type (file_type_name) VALUES 
-('MONKEY'S_AUDIO'),
+('MONKEYS_AUDIO'),
 ('FLAC'),
 ('M4A'),
 ('MP3'),
